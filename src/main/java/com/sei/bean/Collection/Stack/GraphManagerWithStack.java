@@ -323,7 +323,7 @@ public class GraphManagerWithStack extends UiTransition {
         }
 
         if (currentFragmentNode.xpath_index.contains(currentFragmentNode.xpath) || currentFragmentNode.xpath == -1) {
-            currentFragmentNode.xpath = CommonUtil.shuffle_random(currentFragmentNode.xpath_index, currentFragmentNode.clickable_list.size());
+            currentFragmentNode.xpath = CommonUtil.shuffle(currentFragmentNode.xpath_index, currentFragmentNode.clickable_list.size());
         }
         log("xpath index: " + currentFragmentNode.xpath +  " " + currentFragmentNode.xpath_index.size() + "/" + currentFragmentNode.clickable_list.size());
         return currentFragmentNode.get_Clickable_list().get(currentFragmentNode.xpath);
@@ -331,7 +331,7 @@ public class GraphManagerWithStack extends UiTransition {
 
     public int getXpathItem(ViewTree currentTree, String xpath){
         List<ViewNode> vl = ViewUtil.getViewByXpath(currentTree.root, xpath);
-        int ser = CommonUtil.shuffle_random(currentFragmentNode.path_index, vl.size());
+        int ser = CommonUtil.shuffle(currentFragmentNode.path_index, vl.size());
         currentFragmentNode.path_index.add(ser);
         log("path index: " + ser + " " + currentFragmentNode.path_index.size() + "/" + vl.size());
         return ser;

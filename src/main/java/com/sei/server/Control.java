@@ -21,7 +21,7 @@ import static com.sei.util.CommonUtil.log;
 
 public class Control extends NanoHTTPD{
     GraphManager graphManager = new GraphManager();
-    Strategy strategy = new DepthFirstTraversal(graphManager);
+    Strategy strategy;
     public static HashMap<String, Handler> route_table = new HashMap<>();
 
 
@@ -64,7 +64,8 @@ public class Control extends NanoHTTPD{
         register("/start", new Handler() {
             @Override
             public Response onRequest(IHTTPSession session) {
-                startTestApplication();
+                Map<String, List<String>> query = session.getParameters();
+                startTestApplication(query.get("strategy").get(0));
                 return newFixedLengthResponse("start success");
             }
         });
@@ -77,26 +78,30 @@ public class Control extends NanoHTTPD{
             }
         });
 
+        register("/list", new Handler() {
+            @Override
+            public Response onRequest(IHTTPSession session) {
+                Map<String, List<String>> ret = new HashMap<>();
+                ret.put("nodes", graphManager.getAllNodesTag());
+                return newFixedLengthResponse(ret.toString());
+            }
+        });
 
         register("/replay", new Handler() {
             @Override
             public Response onRequest(IHTTPSession session) {
-                // parameter format : /replay?route=xxx_xxx&xxx_xxx
+                // parameter format : /replay?nodes=xxx_xxx&xxx_xxx
                 String query = session.getQueryParameterString().substring(6);
-                log(query.toString());
-                List<String> route_list = Arrays.asList(query.split("&"));
-                strategy = new ModelReplay(graphManager, route_list);
-                strategy.start();
-                return newFixedLengthResponse("start replay");
-            }
-        });
-
-        register("/verify", new Handler() {
-            @Override
-            public Response onRequest(IHTTPSession session) {
-                strategy = new ModelReplay(graphManager);
-                strategy.start();
-                return newFixedLengthResponse("start replay all nodes");
+                //log(query.toString());
+                if (query.equals("all")) {
+                    strategy = new ModelReplay(graphManager);
+                    strategy.start();
+                }else{
+                    List<String> route_list = Arrays.asList(query.split("&"));
+                    strategy = new ModelReplay(graphManager, route_list);
+                    strategy.start();
+                }
+                return newFixedLengthResponse("replay start");
             }
         });
     }
@@ -112,12 +117,18 @@ public class Control extends NanoHTTPD{
         }
     }
 
-    void startTestApplication() {
+    void startTestApplication(String s) {
         log("start test ");
         CommonUtil.sleep(2000);
         try {
-            strategy.start();
-        } catch (Exception e) {
+            if (s.equals("DFS")){
+                log("strategy: DFS");
+                CommonUtil.random = new Random(250);
+                graphManager = new GraphManager();
+                strategy = new DepthFirstTraversal(graphManager);
+                strategy.start();
+            }
+        }catch (Exception e) {
             e.printStackTrace();
         }
     }

@@ -213,6 +213,18 @@ public class GraphManager extends UiTransition{
         return nodes;
     }
 
+    public List<String> getAllNodesTag(){
+        List<String> tags = new ArrayList<>();
+        for(int i=0; i < appGraph.getActivities().size(); i++){
+            ActivityNode act = appGraph.getActivities().get(i);
+            for(int j=act.getFragments().size()-1; j>=0; j--){
+                FragmentNode frg = act.getFragments().get(j);
+                tags.add(frg.getSignature());
+            }
+        }
+        return tags;
+    }
+
     public List<FragmentNode> getRouteNodes(List<String> route_list){
         List<FragmentNode> frgNodes = new ArrayList<>();
         Boolean interrupt = false;

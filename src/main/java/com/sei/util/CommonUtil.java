@@ -3,6 +3,7 @@ package com.sei.util;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -17,7 +18,13 @@ public class CommonUtil {
     public static String DIR = "";
     public static String ADB_PATH = "/home/mike/Android/Sdk/platform-tools/";
     public static int SCREEN_X = 768;
+    public static Random random = new Random(250);
 
+
+    public static void main(String[] argv){
+        for(int i=0; i < 15; i++)
+            System.out.println(random.nextDouble());
+    }
 
     public static void sleep(int milliseconds){
         try{
@@ -26,30 +33,13 @@ public class CommonUtil {
             e.printStackTrace();
         }
     }
-
+    
     public static int shuffle(List<Integer> foots, int tot){
-//        int ran = (int)(Math.random()*tot);
-//        while (foots.contains(ran)){
-//            ran = (int)(Math.random()*tot);
-//        }
-        int ran = -1;
-        for(int i=0; i < tot; i++){
-            ran = i;
-            if (!foots.contains(i)) {
-                break;
-            }
-        }
-//        log("shuffle " + (ran + 1) + " / " + tot);
-        return ran;
-    }
-
-
-    public static int shuffle_random(List<Integer> foots, int tot){
-        int ran = (int)(Math.random()*tot);
+        int ran = (int)(random.nextDouble() * tot);
         if (foots.size() >= tot)
             return -1;
         while (foots.contains(ran)){
-            ran = (int)(Math.random()*tot);
+            ran = (int)(random.nextDouble() * tot);
         }
 //        log("shuffle " + (ran + 1) + " / " + tot);
         return ran;
