@@ -183,7 +183,7 @@ public class ClientUtil{
     public static void startApp(String pkg){
         String command = CommonUtil.ADB_PATH + "adb shell monkey -p " + pkg + " -c android.intent.category.LAUNCHER 1";
         ShellUtils2.execCommand(command);
-        CommonUtil.sleep(4000);
+        CommonUtil.sleep(8000);
         ConnectUtil.setUp(pkg);
         ClientUtil.setScreenSize(CommonUtil.SCREEN_X);
     }

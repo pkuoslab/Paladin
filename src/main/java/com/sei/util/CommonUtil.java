@@ -17,7 +17,7 @@ public class CommonUtil {
     public static double SIMILARITY = 0.9;
     public static String DIR = "";
     public static String ADB_PATH = "/home/mike/Android/Sdk/platform-tools/";
-    public static int SCREEN_X = 768;
+    public static int SCREEN_X = 0;
     public static Random random = new Random(255);
 
 

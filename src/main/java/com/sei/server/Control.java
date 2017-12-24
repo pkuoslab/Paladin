@@ -30,9 +30,8 @@ public class Control extends NanoHTTPD{
         Control server = new Control();
         server.set_route_table();
         server.configure();
-        //server.debug();
-        System.out.println("listening on: " + DEFAULT_PORT);
-        ServerRunner.run(Control.class);
+        //System.out.println("listening on: " + DEFAULT_PORT);
+        //ServerRunner.run(Control.class);
 
     }
 
@@ -162,24 +161,17 @@ public class Control extends NanoHTTPD{
     }
 
     void configure(){
-        //String dir = "/home/mike/togithub/droidwalker/droidwalker/out/artifacts/droidwalker_jar/";
         String dir = "./";
         File config = new File(dir + "config.json");
         if (!config.exists()) return;
         try {
             String content = CommonUtil.readFromFile(dir + "config.json");
             JSONObject config_json = new JSONObject(content);
-            JSONObject server = (JSONObject) config_json.get("SERVER");
-            CommonUtil.SERVER = "http://" + server.getString("IP") + ":" + server.getString("PORT");
-            CommonUtil.SLEEPTIME = config_json.getInt("SLEEP");
-            CommonUtil.SIMILARITY = config_json.getDouble("SIMILARITY");
 
             JSONObject device = (JSONObject) config_json.get("DEVICE");
             CommonUtil.HOST = "http://" + device.getString("IP") + ":6161";
-
             JSONObject app = (JSONObject) config_json.get("APP");
             CommonUtil.ADB_PATH = config_json.getString("ADB_PATH");
-            CommonUtil.DIR = config_json.getString("WORKING_DIR");
             if (device.has("SCREEN_WIDTH"))
                 CommonUtil.SCREEN_X = device.getInt("SCREEN_WIDTH");
 
@@ -194,14 +186,4 @@ public class Control extends NanoHTTPD{
             e.printStackTrace();
         }
     }
-
-    void debug(){
-        CommonUtil.sleep(60000 * 3);
-        strategy.EXIT = true;
-        CommonUtil.sleep(5000);
-        ModelReplay modelReplay = new ModelReplay(graphManager);
-        modelReplay.verify = true;
-        modelReplay.start();
-    }
-
 }
