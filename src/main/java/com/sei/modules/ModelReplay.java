@@ -94,7 +94,9 @@ public class ModelReplay extends Strategy {
         for(int i = path.size()-1; i >=0; i--){
             Action action = path.get(i).getSecond();
             FragmentNode expect_node = path.get(i).getFirst();
-            ClientUtil.checkStatus(ClientUtil.execute_action(action.getAction(), action.path));
+            ClientUtil.checkStatus(ClientUtil.execute_action(Action.action_list.CLICK, action.path));
+            if (action.getAction() == Action.action_list.ENTERTEXT)
+                ClientUtil.checkStatus(ClientUtil.execute_action(action.getAction(), action.getContent()));
 
             currentTree = ClientUtil.getCurrentTree();
             if (currentTree == null) return visited_along_path;

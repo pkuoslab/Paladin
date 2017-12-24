@@ -11,6 +11,7 @@ public class Action implements Serializable{
     public String target;
     public int target_hash;
     public String target_activity;
+    public String content;
     boolean list;
     int index;
 
@@ -68,4 +69,11 @@ public class Action implements Serializable{
         list = false;
         scroll = 0;
     }
+
+    public Action(String path, int action, String content){
+        this(path, action);
+        this.content = content;
+    }
+
+    public String getContent(){return content;}
 }

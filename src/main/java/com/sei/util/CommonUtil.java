@@ -18,7 +18,7 @@ public class CommonUtil {
     public static String DIR = "";
     public static String ADB_PATH = "/home/mike/Android/Sdk/platform-tools/";
     public static int SCREEN_X = 768;
-    public static Random random = new Random(250);
+    public static Random random = new Random(255);
 
 
     public static void main(String[] argv){

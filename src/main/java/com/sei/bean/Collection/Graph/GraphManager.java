@@ -213,13 +213,14 @@ public class GraphManager extends UiTransition{
         return nodes;
     }
 
-    public List<String> getAllNodesTag(){
-        List<String> tags = new ArrayList<>();
+    public Map<String, List<String>> getAllNodesTag(){
+        Map<String, List<String>> tags = new HashMap<>();
         for(int i=0; i < appGraph.getActivities().size(); i++){
             ActivityNode act = appGraph.getActivities().get(i);
+            tags.put(act.activity_name, new ArrayList<>());
             for(int j=act.getFragments().size()-1; j>=0; j--){
                 FragmentNode frg = act.getFragments().get(j);
-                tags.add(frg.getSignature());
+                tags.get(act.activity_name).add(String.valueOf(frg.getStructure_hash()));
             }
         }
         return tags;
@@ -348,4 +349,6 @@ public class GraphManager extends UiTransition{
         ActivityNode actNode = appGraph.getAct(tree.getActivityName());
         return actNode.find_Fragment_in_graph(tree);
     }
+
+    public int getActivitySize(){return appGraph.activities.size();}
 }

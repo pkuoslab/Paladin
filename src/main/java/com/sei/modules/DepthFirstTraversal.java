@@ -3,12 +3,14 @@ package com.sei.modules;
 import com.sei.bean.Collection.Graph.GraphManager;
 import com.sei.bean.Collection.Stack.GraphManagerWithStack;
 import com.sei.bean.View.Action;
+import com.sei.bean.View.ViewNode;
 import com.sei.bean.View.ViewTree;
 import com.sei.util.ClientUtil;
 import com.sei.util.CommonUtil;
 import com.sei.util.ConnectUtil;
 import com.sei.util.ClientUtil.Status;
 import com.sei.bean.Collection.Stack.GraphManagerWithStack.STACK_STATUS;
+import com.sei.util.ViewUtil;
 
 import static com.sei.util.CommonUtil.log;
 
@@ -53,12 +55,11 @@ public class DepthFirstTraversal extends Strategy {
                         if(check_exit(EXIT)) return;
                         // select a path randomly
                         int ser = manager.getXpathItem(currentTree, xpath);
-                        String status = ClientUtil.execute_action(Action.action_list.CLICK, xpath + "#" + ser);
-                        int response = ClientUtil.checkStatus(status);
+                        Response response = execute(xpath + "#" + ser);
 
-                        if (response == Status.NEW || response == Status.PIDCHANGE){
+                        if (response.code == Status.NEW || response.code == Status.PIDCHANGE){
                             new_tree = ClientUtil.getCurrentTree();
-                            Action action = new Action(xpath + "#" + ser, Action.action_list.CLICK);
+                            Action action = response.action;
                             action.setTarget(new_tree.getActivityName(), new_tree.getTreeStructureHash());
                             int stack_status = manager.update(action, currentTree, new_tree);
                             currentTree = ClientUtil.getCurrentTree();
@@ -71,7 +72,7 @@ public class DepthFirstTraversal extends Strategy {
                             else if (stack_status == STACK_STATUS.STACK)
                                 break;
 
-                        }else if(response == Status.OUT){
+                        }else if(response.code == Status.OUT){
                             log("reach outside of the app, need recover size: " + manager.getStackSize());
                             RECOVER = true;
                             break;
@@ -90,12 +91,12 @@ public class DepthFirstTraversal extends Strategy {
                             !manager.hasFragmentMenuClicked()){
                         log("click menu");
                         manager.setFragmentMenuClicked();
-                        int response =ClientUtil.checkStatus(ClientUtil.execute_action(Action.action_list.MENU));
-                        if (response == Status.NEW || response == Status.PIDCHANGE){
+                        int code =ClientUtil.checkStatus(ClientUtil.execute_action(Action.action_list.MENU));
+                        if (code == Status.NEW || code == Status.PIDCHANGE){
                             new_tree = ClientUtil.getCurrentTree();
                             manager.update(new Action("", Action.action_list.MENU), currentTree, new_tree);
                             currentTree = ClientUtil.getCurrentTree();
-                        }else if(response == Status.OUT) {
+                        }else if(code == Status.OUT) {
                             RECOVER = true;
                             break;
                         }
@@ -143,5 +144,31 @@ public class DepthFirstTraversal extends Strategy {
         }
         log("stop");
         return true;
+    }
+
+    Response execute(String path){
+        String status = ClientUtil.execute_action(Action.action_list.CLICK, path);
+        Action action;
+        int response = ClientUtil.checkStatus(status);
+        if (response == Status.SAME){
+            ViewNode vn= ViewUtil.getViewByPath(currentTree.root, path);
+            if (vn != null && vn.getViewTag().contains("EditText")){
+                response = ClientUtil.checkStatus(ClientUtil.execute_action(Action.action_list.ENTERTEXT, "Beijing"));
+                action = new Action(path, Action.action_list.ENTERTEXT, "Beijing");
+            }else
+                action = null;
+        }else
+            action = new Action(path, Action.action_list.CLICK);
+
+        return new Response(response, action);
+    }
+
+    class Response{
+        int code;
+        Action action;
+        Response(int code, Action action){
+            this.code = code;
+            this.action = action;
+        }
     }
 }

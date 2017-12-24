@@ -29,7 +29,7 @@ public class Control extends NanoHTTPD{
         //setListeningPort();
         Control server = new Control();
         server.set_route_table();
-        //server.configure();
+        server.configure();
         //server.debug();
         System.out.println("listening on: " + DEFAULT_PORT);
         ServerRunner.run(Control.class);
@@ -81,9 +81,14 @@ public class Control extends NanoHTTPD{
         register("/list", new Handler() {
             @Override
             public Response onRequest(IHTTPSession session) {
-                Map<String, List<String>> ret = new HashMap<>();
-                ret.put("nodes", graphManager.getAllNodesTag());
-                return newFixedLengthResponse(ret.toString());
+                JSONObject jo = new JSONObject();
+                try {
+                    jo.put("nodes", graphManager.getAllNodesTag());
+                    jo.put("activity", graphManager.getActivitySize());
+                }catch (Exception e){
+                    e.printStackTrace();
+                }
+                return newFixedLengthResponse(jo.toString());
             }
         });
 
@@ -157,7 +162,8 @@ public class Control extends NanoHTTPD{
     }
 
     void configure(){
-        String dir = "/home/mike/togithub/droidwalker/droidwalker/out/artifacts/droidwalker_jar/";
+        //String dir = "/home/mike/togithub/droidwalker/droidwalker/out/artifacts/droidwalker_jar/";
+        String dir = "./";
         File config = new File(dir + "config.json");
         if (!config.exists()) return;
         try {

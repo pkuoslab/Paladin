@@ -90,17 +90,12 @@ public class FragmentStack {
                 status = ClientUtil.execute_action(action.getAction());
             else if(action.getAction() == Action.action_list.ENTERTEXT) {
                 ClientUtil.execute_action(Action.action_list.CLICK, action.getPath());
-                status = ClientUtil.execute_action(Action.action_list.ENTERTEXT, "Beijing");
+                status = ClientUtil.execute_action(Action.action_list.ENTERTEXT, action.getContent());
             }else
                 status = ClientUtil.execute_action(action.getAction(), action.getPath());
             ClientUtil.checkStatus(status);
             tree = ClientUtil.getCurrentTree();
             if (tree == null){
-//                int c = i+1;
-//                log("can not recover, cut above " + c + "/" + stack.size());
-//                for(int j=c; j < stack.size(); j++)
-//                    stack.remove(j);
-                //return ClientUtil.Status.OUT;
                 return GraphManagerWithStack.STACK_STATUS.OUT;
             }
 

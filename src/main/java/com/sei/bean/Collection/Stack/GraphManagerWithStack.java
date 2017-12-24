@@ -301,7 +301,8 @@ public class GraphManagerWithStack extends UiTransition {
         if (currentFragmentNode.xpath_index.size() >= currentFragmentNode.clickable_list.size())
             return true;
         List<ViewNode> vl = ViewUtil.getViewByXpath(currentTree.root, xpath);
-        if (currentFragmentNode.path_index.size() >= vl.size()) {
+
+        if (currentFragmentNode.path_index.size() >= vl.size() || currentFragmentNode.path_index.size() > 8) {
             return true;
         }else
             return false;
