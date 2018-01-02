@@ -54,7 +54,7 @@ public class FragmentStack {
                 continue;
             double s = tree.calc_similarity(stack.get(i).get_Clickable_list());
             //double s = 0.5;
-            if (s > 0.9) {
+            if (s > CommonUtil.SIMILARITY) {
                 log("similarity: " + s + " with " + stack.get(i).getStructure_hash() + " position: " + i);
                 return i;
             }
@@ -108,19 +108,27 @@ public class FragmentStack {
             if (position == i) {
                 int c = i+1;
                 log("can not recover, cut above " + c + "/" + stack.size());
-                for(int j=c; j < stack.size(); j++)
+                for(int j=stack.size()-1; j >= c; j--)
                     stack.remove(j);
                 return GraphManagerWithStack.STACK_STATUS.STACK;
             }else if (position != -1 && position != i+1){
                 if (limits >= 3){
                     int c = position + 1;
                     log("continuously back to position " + position + " cut above " + c + "/" + stack.size());
-                    for(int j=c; j < stack.size(); j++)
+                    for(int j=stack.size()-1; j >= c; j--)
                         stack.remove(j);
                     return GraphManagerWithStack.STACK_STATUS.STACK;
                 }
                 limits += 1;
                 i = position-1;
+            }else if (position == -1){
+                int c = i + 1;
+                log("recover to node not in stack, cut above " + c + "/" + stack.size());
+                for(int j=stack.size()-1; j >= c; j--)
+                    stack.remove(j);
+                //RuntimeFragmentNode node = new RuntimeFragmentNode(tree);
+                //stack.add(node);
+                return GraphManagerWithStack.STACK_STATUS.NOT;
             }
         }
         return GraphManagerWithStack.STACK_STATUS.RECOVER;

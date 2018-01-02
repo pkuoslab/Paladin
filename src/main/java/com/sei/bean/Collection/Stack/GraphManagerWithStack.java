@@ -26,12 +26,12 @@ public class GraphManagerWithStack extends UiTransition {
     Boolean currentFragmentChanged = false;
 
     public interface STACK_STATUS{
-        int EMPTY = 0;
         int STACK = -1;
         int NEW = -2;
         int OUT = -3;
         int RECOVER = -4;
         int CLEAN = -5;
+        int NOT = -6;
     }
 
     public GraphManagerWithStack(ViewTree currentTree, GraphManager global_graph){
@@ -122,6 +122,20 @@ public class GraphManagerWithStack extends UiTransition {
                     return handleFragmentOver(false);
             }
         });
+
+        registerHandler(UI.LOGIN, new Handler() {
+            @Override
+            public int adjust(Action action, ViewTree currentTree, ViewTree new_tree) {
+                int refresh = graphManager.handleLogin(new_tree);
+                if (refresh == GraphManager.REFRESH.YES){
+                    ClientUtil.initiate();
+                    new_tree = ClientUtil.getCurrentTree();
+                }
+
+                Handler handler = handler_table.get(graphManager.queryGraph(currentTree, new_tree));
+                return handler.adjust(action, currentTree, new_tree);
+            }
+        });
     }
 
     int handleFragmentInStack(int position){
@@ -134,15 +148,22 @@ public class GraphManagerWithStack extends UiTransition {
         }else if(recover_status == STACK_STATUS.STACK) {
             log("recover failed, continue crawl");
             currentFragmentNode = fragmentStack.pop();
-            //调整图的指针，与栈节点同步
-            graphManager.setActivityNode(appGraph.getAct(currentFragmentNode.getActivity()));
-            int hash = currentFragmentNode.getStructure_hash();
-            List<String> click_list = currentFragmentNode.get_Clickable_list();
-            graphManager.setFragmentNode(graphManager.getActivityNode().find_Fragment(hash, click_list));
-            log("graph adjust finished");
-
+            setGraphPointer(currentFragmentNode);
             currentFragmentChanged = true;
-        }
+        }else if(recover_status == STACK_STATUS.NOT){
+            ViewTree tree = ClientUtil.getCurrentTree();
+            FragmentNode frg = graphManager.searchFragment(tree);
+            if (frg == null || !frg.isTraverse_over()){
+                log("fragment not traverse over");
+                currentFragmentNode = new RuntimeFragmentNode(tree);
+                setGraphPointer(currentFragmentNode);
+                currentFragmentChanged = true;
+            }else {
+                currentFragmentNode = fragmentStack.pop();
+                return handleFragmentOver(false);
+            }
+        }else if(recover_status == STACK_STATUS.OUT)
+            fragmentStack.pop();
 
         return recover_status;
     }
@@ -160,8 +181,8 @@ public class GraphManagerWithStack extends UiTransition {
         fragmentStack.add(currentFragmentNode);
         currentFragmentNode = new RuntimeFragmentNode(new_tree);
         log("stack size: " + fragmentStack.getSize());
-        graphManager.setActivityNode( appGraph.getAct(new_tree.getActivityName()));
-        graphManager.setFragmentNode(graphManager.getActivityNode().find_Fragment(new_tree));
+        graphManager.setActivityNode(new_tree.getActivityName());
+        graphManager.setFragmentNode(new_tree.getTreeStructureHash(), new_tree.get_Clickabke_list());
         log("graph adjust finished");
         currentFragmentChanged = true;
         return STACK_STATUS.NEW;
@@ -170,13 +191,18 @@ public class GraphManagerWithStack extends UiTransition {
     public int handleFragmentOver(Boolean top_removed) {
         if (top_removed) {
             log("fragment has been traversed over, recover");
+            if (fragmentStack.getSize() == 0)
+                return ClientUtil.Status.OUT;
+
             currentFragmentNode = fragmentStack.pop();
             int hash = currentFragmentNode.getStructure_hash();
             List<String> click_list = currentFragmentNode.get_Clickable_list();
-            graphManager.setActivityNode(appGraph.getAct(currentFragmentNode.getActivity()));
-            graphManager.setFragmentNode(graphManager.getActivityNode().find_Fragment(hash, click_list));
+            graphManager.setActivityNode(currentFragmentNode.getActivity());
+            graphManager.setFragmentNode(hash, click_list);
         }else
             log("fragment traversed over, back");
+
+
 
         int position = go_back(2);
         if (position == ClientUtil.Status.OUT)
@@ -219,33 +245,41 @@ public class GraphManagerWithStack extends UiTransition {
         return STACK_STATUS.OUT;
     }
 
-    public void handleRecover(){
+    public int handleRecover(){
         int recover_status = fragmentStack.recover();
         if (recover_status == STACK_STATUS.RECOVER){
             log("recover successfully");
         }else if (recover_status == STACK_STATUS.STACK){
             log("recover failed, continue crawl");
             //调整图的指针，与栈节点同步
-            graphManager.setActivityNode(appGraph.getAct(fragmentStack.top().getActivity()));
+            graphManager.setActivityNode(fragmentStack.top().getActivity());
             int hash = fragmentStack.top().getStructure_hash();
             List<String> click_list = fragmentStack.top().get_Clickable_list();
-            graphManager.setFragmentNode(graphManager.getActivityNode().find_Fragment(hash, click_list));
+            graphManager.setFragmentNode(hash, click_list);
             log("graph adjust finished");
         }else if (recover_status == STACK_STATUS.CLEAN){
-            ActivityNode actNode = appGraph.getAct(fragmentStack.top().getActivity());
-            if (actNode == null) {
-                graphManager.setActivityNode(new ActivityNode(fragmentStack.top().getActivity()));
-                graphManager.getActivityNode().setSer_intent(ClientUtil.getSerIntent());
-                appGraph.appendActivity(graphManager.getActivityNode());
-            }
+            graphManager.setActivityNode(fragmentStack.top().getActivity());
+            graphManager.getActivityNode().setSer_intent(ClientUtil.getSerIntent());
             int hash = fragmentStack.top().getStructure_hash();
             List<String> click_list = fragmentStack.top().get_Clickable_list();
-            FragmentNode frgNode = graphManager.getActivityNode().find_Fragment(hash, click_list);
-            if (frgNode == null){
-                graphManager.setFragmentNode(new FragmentNode(hash, click_list));
-                graphManager.getActivityNode().appendFragment(graphManager.getFragmentNode());
+            graphManager.setFragmentNode(hash, click_list);
+        }else if(recover_status == STACK_STATUS.NOT) {
+            ViewTree tree = ClientUtil.getCurrentTree();
+            FragmentNode frg = graphManager.searchFragment(tree);
+            if (frg == null || !frg.isTraverse_over()) {
+                log("fragment not traverse over");
+                currentFragmentNode = new RuntimeFragmentNode(tree);
+                setGraphPointer(currentFragmentNode);
+                fragmentStack.add(currentFragmentNode);
+            } else {
+                currentFragmentNode = fragmentStack.pop();
+                recover_status = handleFragmentOver(false);
+                if (recover_status == STACK_STATUS.RECOVER)
+                    fragmentStack.add(currentFragmentNode);
+                currentFragmentChanged = false;
             }
         }
+        return recover_status;
     }
 
     @Override
@@ -291,7 +325,7 @@ public class GraphManagerWithStack extends UiTransition {
 
     public Boolean hasCurrentFragmentOver(){
         return (currentFragmentNode.xpath_index.size() >= currentFragmentNode.clickable_list.size()) &&
-                currentFragmentNode.if_menu;
+                graphManager.getFragmentNode().getMenuClicked();
     }
 
     public Boolean hasFragmentXpathOver(){
@@ -347,14 +381,22 @@ public class GraphManagerWithStack extends UiTransition {
     }
 
     public Boolean hasFragmentMenuClicked(){
-        return currentFragmentNode.if_menu;
+        return graphManager.getFragmentNode().getMenuClicked();
     }
 
     public void setFragmentMenuClicked(){
-        currentFragmentNode.if_menu = true;
+        graphManager.getFragmentNode().setMenuClicked(true);
     }
 
     public void setCurrentFragmentOver(){
         graphManager.getFragmentNode().setTraverse_over(true);
+    }
+
+    public void setGraphPointer(RuntimeFragmentNode currentFragmentNode){
+        graphManager.setActivityNode(currentFragmentNode.getActivity());
+        int hash = currentFragmentNode.getStructure_hash();
+        List<String> click_list = currentFragmentNode.get_Clickable_list();
+        graphManager.setFragmentNode(hash, click_list);
+        log("graph adjust finished");
     }
 }

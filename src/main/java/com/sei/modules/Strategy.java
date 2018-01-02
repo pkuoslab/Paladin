@@ -15,8 +15,6 @@ public class Strategy extends Thread {
     ViewTree currentTree;
     public volatile boolean EXIT = false;
     public volatile boolean RUNNING = false;
-    public volatile boolean DEBUG = false;
-    public volatile boolean VERIFY = false;
 
     public Boolean initiate(){
         ClientUtil.initiate();
@@ -26,16 +24,30 @@ public class Strategy extends Thread {
             if (currentTree != null) {
                 return true;
             }
-            CommonUtil.sleep(1000);
+            CommonUtil.sleep(1500);
         }
 
         if (currentTree == null) {
             log("can not get tree, give up");
-            EXIT = true;
-            RUNNING = false;
             return false;
         }
         return true;
+    }
+
+    public Boolean initiate(int limit){
+        if (initiate())
+            return true;
+        else{
+            int time = 0;
+            while(!restart() && time < limit)
+                time += 1;
+
+            if (currentTree == null) {
+                log("restart too many times, give up");
+                return false;
+            }else
+                return true;
+        }
     }
 
     public Boolean restart(){

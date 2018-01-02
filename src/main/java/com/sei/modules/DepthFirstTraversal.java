@@ -31,8 +31,10 @@ public class DepthFirstTraversal extends Strategy {
 
     public void run(){
         try {
-            if (!initiate()) return;
-            if (graphManager.appGraph == null) graphManager.graphManagerFactor(currentTree);
+            if (!initiate(5)) return;
+            checkLogin();
+
+            graphManager.graphManagerFactor(currentTree);
             manager = new GraphManagerWithStack(currentTree, graphManager);
             RUNNING = true;
 
@@ -56,7 +58,6 @@ public class DepthFirstTraversal extends Strategy {
                         // select a path randomly
                         int ser = manager.getXpathItem(currentTree, xpath);
                         Response response = execute(xpath + "#" + ser);
-
                         if (response.code == Status.NEW || response.code == Status.PIDCHANGE){
                             new_tree = ClientUtil.getCurrentTree();
                             Action action = response.action;
@@ -67,9 +68,7 @@ public class DepthFirstTraversal extends Strategy {
                                 log("Stack recover error, need restart");
                                 RECOVER = true;
                                 break;
-                            }else if (stack_status == STACK_STATUS.NEW)
-                                break;
-                            else if (stack_status == STACK_STATUS.STACK)
+                            }else if (stack_status != STACK_STATUS.RECOVER)
                                 break;
 
                         }else if(response.code == Status.OUT){
@@ -104,6 +103,7 @@ public class DepthFirstTraversal extends Strategy {
                 }
 
                 if (RECOVER){
+                    manager.pushBackCurrentFragment();
                     continue;
                 }
                 manager.setCurrentFragmentOver();
@@ -118,7 +118,6 @@ public class DepthFirstTraversal extends Strategy {
                 currentTree = ClientUtil.getCurrentTree();
             }
         }catch (Exception e){
-            RUNNING = false;
             e.printStackTrace();
             return;
         }
@@ -126,20 +125,40 @@ public class DepthFirstTraversal extends Strategy {
 
     public Boolean recover(Boolean need_recover){
         if (!need_recover) return true;
-        manager.pushBackCurrentFragment();
+        //manager.pushBackCurrentFragment();
+        int times = 0;
+        Boolean success = false;
+        while (times < 5){
+            times += 1;
+            if (!restart())
+                continue;
+            checkLogin();
+            if(manager.handleRecover() != STACK_STATUS.OUT) {
+                success = true;
+                break;
+            }
+        }
+        if (success)
+            return true;
+        else {
+            manager.save();
+            return false;
+        }
+    }
+
+    public Boolean restart(){
         ConnectUtil.force_stop(ConnectUtil.launch_pkg);
         ClientUtil.startApp(ConnectUtil.launch_pkg);
         if (!initiate()){
             log("restart app failure");
             return false;
-        }
-        manager.handleRecover();
-        return true;
+        }else
+            return true;
     }
 
     public Boolean check_exit(Boolean need_exit){
         if(!need_exit){
-            manager.save();
+            //manager.save();
             return false;
         }
         log("stop");
@@ -153,14 +172,23 @@ public class DepthFirstTraversal extends Strategy {
         if (response == Status.SAME){
             ViewNode vn= ViewUtil.getViewByPath(currentTree.root, path);
             if (vn != null && vn.getViewTag().contains("EditText")){
-                response = ClientUtil.checkStatus(ClientUtil.execute_action(Action.action_list.ENTERTEXT, "Beijing"));
-                action = new Action(path, Action.action_list.ENTERTEXT, "Beijing");
+                response = ClientUtil.checkStatus(ClientUtil.execute_action(Action.action_list.ENTERTEXT, "testing"));
+                action = new Action(path, Action.action_list.ENTERTEXT, "testing");
             }else
                 action = null;
         }else
             action = new Action(path, Action.action_list.CLICK);
 
         return new Response(response, action);
+    }
+
+
+    void checkLogin(){
+        if (currentTree.getActivityName().contains("ui.account.LoginPasswordUI")){
+            graphManager.handleLogin(currentTree);
+            ClientUtil.initiate();
+            currentTree = ClientUtil.getCurrentTree();
+        }
     }
 
     class Response{

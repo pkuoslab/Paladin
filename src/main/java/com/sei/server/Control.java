@@ -9,6 +9,7 @@ import com.sei.server.component.Handler;
 import com.sei.util.ClientUtil;
 import com.sei.util.CommonUtil;
 import com.sei.util.ConnectUtil;
+import com.sei.util.SerializeUtil;
 import fi.iki.elonen.NanoHTTPD;
 import fi.iki.elonen.util.ServerRunner;
 import org.json.JSONObject;
@@ -30,8 +31,8 @@ public class Control extends NanoHTTPD{
         Control server = new Control();
         server.set_route_table();
         server.configure();
-        //System.out.println("listening on: " + DEFAULT_PORT);
-        //ServerRunner.run(Control.class);
+        System.out.println("listening on: " + DEFAULT_PORT);
+        ServerRunner.run(Control.class);
 
     }
 
@@ -91,23 +92,40 @@ public class Control extends NanoHTTPD{
             }
         });
 
-        register("/replay", new Handler() {
+//        register("/replay", new Handler() {
+//            @Override
+//            public Response onRequest(IHTTPSession session) {
+//                // parameter format : /replay?nodes=xxx_xxx&xxx_xxx
+//                String query = session.getQueryParameterString().substring(6);
+//                //log(query.toString());
+//                if (query.equals("all")) {
+//                    strategy = new ModelReplay(graphManager);
+//                    strategy.start();
+//                }else{
+//                    List<String> route_list = Arrays.asList(query.split("&"));
+//                    strategy = new ModelReplay(graphManager, route_list);
+//                    strategy.start();
+//                }
+//                return newFixedLengthResponse("replay start");
+//            }
+//        });
+
+        register("/save", new Handler() {
             @Override
             public Response onRequest(IHTTPSession session) {
-                // parameter format : /replay?nodes=xxx_xxx&xxx_xxx
-                String query = session.getQueryParameterString().substring(6);
-                //log(query.toString());
-                if (query.equals("all")) {
-                    strategy = new ModelReplay(graphManager);
-                    strategy.start();
-                }else{
-                    List<String> route_list = Arrays.asList(query.split("&"));
-                    strategy = new ModelReplay(graphManager, route_list);
-                    strategy.start();
-                }
-                return newFixedLengthResponse("replay start");
+                log("save graph");
+                graphManager.save();
+                return newFixedLengthResponse("save");
             }
         });
+
+//        register("/current", new Handler() {
+//            @Override
+//            public Response onRequest(IHTTPSession session) {
+//                String current = graphManager.getFragmentNode().getSignature();
+//                return newFixedLengthResponse(current);
+//            }
+//        });
     }
 
     @Override
@@ -174,8 +192,15 @@ public class Control extends NanoHTTPD{
             CommonUtil.ADB_PATH = config_json.getString("ADB_PATH");
             if (device.has("SCREEN_WIDTH"))
                 CommonUtil.SCREEN_X = device.getInt("SCREEN_WIDTH");
+            if (app.has("PASSWORD"))
+                CommonUtil.PASSWORD = app.getString("PASSWORD");
 
             ClientUtil.startApp(app.getString("PACKAGE"));
+
+            File graph = new File(dir + "./graph.json");
+
+            if (graph.exists())
+                graphManager.load();
 
             if (app.getString("STRATEGY").equals("DFS")){
                 log("strategy: " + app.getString("STRATEGY"));

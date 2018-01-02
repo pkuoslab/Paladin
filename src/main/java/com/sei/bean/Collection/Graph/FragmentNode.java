@@ -21,6 +21,7 @@ public class FragmentNode {
     List<Action> intrapaths;
     List<Action> interpaths;
     String color;
+    Boolean menuClicked = false;
     public List<String> unclick_list;
     public List<Integer> xpath_index;
     public List<Integer> path_index;
@@ -52,6 +53,10 @@ public class FragmentNode {
         this.click_list = click_list;
         structure_hash = hash;
     }
+
+    public Boolean getMenuClicked(){return menuClicked;}
+
+    public void setMenuClicked(Boolean b){menuClicked = true;}
 
     public String getSignature(){return activity + "_" + structure_hash;}
 

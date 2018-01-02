@@ -21,6 +21,7 @@ public abstract class UiTransition {
         int OLD_ACT_OLD_FRG = -1;
         int NEW_FRG = -2;
         int OLD_FRG = 2;
+        int LOGIN = 3;
     }
     public void save(){}
     public void load(){}

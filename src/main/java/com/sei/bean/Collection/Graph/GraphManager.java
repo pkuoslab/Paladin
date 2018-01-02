@@ -4,11 +4,9 @@ package com.sei.bean.Collection.Graph;
 import com.sei.bean.Collection.Tuple2;
 import com.sei.bean.Collection.UiTransition;
 import com.sei.bean.View.Action;
+import com.sei.bean.View.ViewNode;
 import com.sei.bean.View.ViewTree;
-import com.sei.util.ClientUtil;
-import com.sei.util.CommonUtil;
-import com.sei.util.ConnectUtil;
-import com.sei.util.SerializeUtil;
+import com.sei.util.*;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -27,7 +25,20 @@ public class GraphManager extends UiTransition{
     public FragmentNode fragmentNode;
     public List<String> route_list = new ArrayList<>();
     public Boolean is_upload = false;
+    Boolean log_fail = false;
+    public interface REFRESH{
+        int NO = 0;
+        int YES = 1;
+    }
 
+    public static void main(String[] arg){
+        String s = "中文字符";
+        if (s.contains("中文")){
+            log("yes!");
+        }else{
+            log("no");
+        }
+    }
 
     public GraphManager(ViewTree currentTree){
         graphManagerFactor(currentTree);
@@ -39,14 +50,15 @@ public class GraphManager extends UiTransition{
         if (appGraph == null) {
             appGraph = new AppGraph();
             appGraph.setPackage_name(ConnectUtil.current_pkg);
-        }
-        if (currentTree != null) {
             activityNode = new ActivityNode();
             activityNode.setActivity_name(currentTree.getActivityName());
             activityNode.setSer_intent(ClientUtil.getSerIntent());
             appGraph.appendActivity(activityNode);
             fragmentNode = new FragmentNode(currentTree);
             activityNode.appendFragment(fragmentNode);
+        }else{
+            setActivityNode(currentTree.getActivityName());
+            setFragmentNode(currentTree.getTreeStructureHash(), currentTree.get_Clickabke_list());
         }
         registerAllHandlers();
     }
@@ -106,6 +118,13 @@ public class GraphManager extends UiTransition{
                 return 0;
             }
         });
+
+        registerHandler(UI.LOGIN, new Handler() {
+            @Override
+            public int adjust(Action action, ViewTree currentTree, ViewTree new_tree) {
+                return handleLogin(new_tree);
+            }
+        });
     }
 
 
@@ -147,6 +166,9 @@ public class GraphManager extends UiTransition{
     }
 
     public int queryGraph(ViewTree currentTree, ViewTree new_tree){
+        if (new_tree.getActivityName().contains("ui.account.LoginPasswordUI") && !log_fail){
+            return UI.LOGIN;
+        }
         if(!currentTree.getActivityName().equals(new_tree.getActivityName())){
             ActivityNode actNode = appGraph.getAct(new_tree.getActivityName());
             if (actNode == null){
@@ -166,6 +188,50 @@ public class GraphManager extends UiTransition{
             }else{
                 log("old fragment " + new_tree.getTreeStructureHash());
                 return UI.OLD_FRG;
+            }
+        }
+    }
+
+    public int handleLogin(ViewTree new_tree){
+        List<ViewNode> nodes = new_tree.get_clickable_nodes();
+        for(ViewNode node : nodes){
+            if (node.getViewTag().contains("EditText")){
+                int x = node.getX() + node.getWidth() / 2;
+                int y = node.getY() + node.getHeight() / 2;
+                ClientUtil.click(x, y);
+                break;
+            }
+        }
+
+        //ClientUtil.execute_action(Action.action_list.ENTERTEXT, CommonUtil.PASSWORD);
+        ShellUtils2.execCommand(CommonUtil.ADB_PATH + "adb shell input text " + CommonUtil.PASSWORD);
+        log("password: " + CommonUtil.PASSWORD);
+        for (ViewNode node : nodes){
+            if (node.getViewText() != null && node.getViewText().contains("登录")){
+                log("log in");
+                int x = node.getX() + node.getWidth() / 2;
+                int y = node.getY() + node.getHeight() / 2;
+                ClientUtil.click(x, y);
+                break;
+            }
+        }
+
+        String login_activity = new_tree.getActivityName();
+        CommonUtil.sleep(5000);
+        String current_activity = ClientUtil.getCurrentActivity();
+        if (!current_activity.equals(login_activity)){
+            log("log in successfully");
+            return REFRESH.YES;
+        }else{
+            CommonUtil.sleep(5000);
+            current_activity = ClientUtil.getCurrentActivity();
+            if (!current_activity.equals(login_activity)) {
+                log("log in successfully");
+                return REFRESH.YES;
+            }else {
+                log("log fail");
+                log_fail = true;
+                return 0;
             }
         }
     }
@@ -257,9 +323,34 @@ public class GraphManager extends UiTransition{
 
     public void setActivityNode(ActivityNode activityNode){this.activityNode = activityNode;}
 
+    public void setActivityNode(String activity){
+        ActivityNode actNode = appGraph.getAct(activity);
+        if (actNode == null){
+            activityNode = new ActivityNode(activity);
+            appGraph.appendActivity(activityNode);
+        }else
+            activityNode = actNode;
+    }
+
     public FragmentNode getFragmentNode() {return fragmentNode;}
 
     public void setFragmentNode(FragmentNode fragmentNode){this.fragmentNode = fragmentNode;}
+
+    public void setFragmentNode(int hash, List<String> click_list){
+        FragmentNode frgNode = activityNode.find_Fragment(hash, click_list);
+        if (frgNode == null){
+            fragmentNode = new FragmentNode(hash, click_list);
+            fragmentNode.setActivity(activityNode.getActivity_name());
+            activityNode.appendFragment(fragmentNode);
+        }else
+            fragmentNode = frgNode;
+    }
+
+    public FragmentNode searchFragment(ViewTree tree){
+        ActivityNode actNode = appGraph.getAct(tree.getActivityName());
+        if (actNode == null) return null;
+        return actNode.find_Fragment(tree);
+    }
 
     public List<List<Tuple2<FragmentNode, Action>>> findOnePath(FragmentNode start, FragmentNode end){
         FragmentNode end_node = BreathFirstSearch(start, end);

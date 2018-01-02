@@ -30,12 +30,7 @@ public class ActivityNode {
     }
 
     public FragmentNode find_Fragment(int hash, List<String> click_lists){
-//        Boolean pt = false;
-//        if (hash == -174843667)
-//            pt = true;
         for (FragmentNode vc : fragments){
-//            if (pt)
-//                log(String.valueOf(vc.getStructure_hash()));
             if(vc.getStructure_hash() == hash)
                 return vc;
         }
@@ -49,13 +44,14 @@ public class ActivityNode {
 
             int tot = vc.get_Clickable_list().size() + click_lists.size();
             if (2 * match / tot > CommonUtil.SIMILARITY){
-//                FragmentNode fc = new FragmentNode(vt.treeStructureHash, vt);
                 FragmentNode fc = new FragmentNode();
                 fc.set_Clickable_list(click_lists);
                 fc.setStructure_hash(hash);
+                fc.setActivity(vc.getActivity());
                 fc.unclick_list = vc.unclick_list;
                 fc.interpaths = vc.interpaths;
                 fc.intrapaths = vc.intrapaths;
+                fc.menuClicked = vc.menuClicked;
                 fragments.add(fc);
                 return fc;
             }

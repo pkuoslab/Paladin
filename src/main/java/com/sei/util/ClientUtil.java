@@ -21,8 +21,6 @@ public class ClientUtil{
         int PIDCHANGE = -1;
         int OUT = -3;
         int SAME = 2;
-        int STACK = 4;
-        int TOP = -4;
     }
 
     public static void main(String[] argv){
@@ -69,6 +67,10 @@ public class ClientUtil{
             int y = ((int) (Math.random() * 200)) + 800;
             ConnectUtil.sendInstruction("random_click", x + ";" + y);
         }
+    }
+
+    public static void click(int x, int y){
+        ConnectUtil.sendInstruction("random_click", x + ";" + y);
     }
 
     public static ViewTree getCurrentTree(){
@@ -145,8 +147,9 @@ public class ClientUtil{
                 ConnectUtil.current_pkg = pkgName;
                 ConnectUtil.sendInstruction("initiate", "");
                 ViewTree tree = ClientUtil.getCurrentTree();
-                if (tree == null)
+                if (tree == null) {
                     return Status.OUT;
+                }
             }else if(pkgName.contains("launcher")) {
                 log("return to launcher, need recover");
                 return Status.OUT;
@@ -168,12 +171,6 @@ public class ClientUtil{
             return Status.OUT;
         }
     }
-
-//    public static Intent getIntent(){
-//        String intentStr = ConnectUtil.sendInstruction("getIntent", "");
-//        Intent intent = SerializeUtil.getIntent(intentStr);
-//        return intent;
-//    }
 
     public static String getSerIntent(){
         String intentStr = ConnectUtil.sendInstruction("getIntent", "");
