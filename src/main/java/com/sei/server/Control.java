@@ -92,23 +92,23 @@ public class Control extends NanoHTTPD{
             }
         });
 
-//        register("/replay", new Handler() {
-//            @Override
-//            public Response onRequest(IHTTPSession session) {
-//                // parameter format : /replay?nodes=xxx_xxx&xxx_xxx
-//                String query = session.getQueryParameterString().substring(6);
-//                //log(query.toString());
-//                if (query.equals("all")) {
-//                    strategy = new ModelReplay(graphManager);
-//                    strategy.start();
-//                }else{
-//                    List<String> route_list = Arrays.asList(query.split("&"));
-//                    strategy = new ModelReplay(graphManager, route_list);
-//                    strategy.start();
-//                }
-//                return newFixedLengthResponse("replay start");
-//            }
-//        });
+        register("/replay", new Handler() {
+            @Override
+            public Response onRequest(IHTTPSession session) {
+                // parameter format : /replay?nodes=xxx_xxx&xxx_xxx
+                String query = session.getQueryParameterString().substring(6);
+                //log(query.toString());
+                if (query.equals("all")) {
+                    strategy = new ModelReplay(graphManager);
+                    strategy.start();
+                }else{
+                    List<String> route_list = Arrays.asList(query.split("&"));
+                    strategy = new ModelReplay(graphManager, route_list);
+                    strategy.start();
+                }
+                return newFixedLengthResponse("replay start");
+            }
+        });
 
         register("/save", new Handler() {
             @Override
@@ -119,13 +119,13 @@ public class Control extends NanoHTTPD{
             }
         });
 
-//        register("/current", new Handler() {
-//            @Override
-//            public Response onRequest(IHTTPSession session) {
-//                String current = graphManager.getFragmentNode().getSignature();
-//                return newFixedLengthResponse(current);
-//            }
-//        });
+        register("/current", new Handler() {
+            @Override
+            public Response onRequest(IHTTPSession session) {
+                String current = graphManager.getFragmentNode().getSignature();
+                return newFixedLengthResponse(current);
+            }
+        });
     }
 
     @Override
