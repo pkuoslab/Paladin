@@ -18,6 +18,8 @@ public class ModelReplay extends Strategy {
     FragmentNode start;
     public GraphManager graphManager;
     List<String> route_list;
+    int test_case = 0;
+
     public ModelReplay(GraphManager graphManager){
         super();
         this.graphManager = graphManager;
@@ -91,10 +93,12 @@ public class ModelReplay extends Strategy {
     List<String> execute_path(List<Tuple2<FragmentNode, Action>> path){
         List<String> visited_along_path = new ArrayList<>();
         log("path size: " + path.size());
+        ClientUtil.record("start", ++test_case);
+
         for(int i = path.size()-1; i >=0; i--){
             Action action = path.get(i).getSecond();
             FragmentNode expect_node = path.get(i).getFirst();
-            ClientUtil.checkStatus(ClientUtil.execute_action(Action.action_list.CLICK, action.path));
+            ClientUtil.checkStatus(ClientUtil.execute_action(Action.action_list.CLICK, action.path, true));
             if (action.getAction() == Action.action_list.ENTERTEXT)
                 ClientUtil.checkStatus(ClientUtil.execute_action(action.getAction(), action.getContent()));
 
@@ -119,6 +123,8 @@ public class ModelReplay extends Strategy {
 
             visited_along_path.add(expect_node.getSignature());
         }
+
+        ClientUtil.record("stop", 0);
         return visited_along_path;
     }
 
@@ -137,7 +143,7 @@ public class ModelReplay extends Strategy {
 
     FragmentNode getStartNode(){
         currentTree = ClientUtil.getCurrentTree();
-        //log("find entry: " + currentTree.getActivityName() + "_" + currentTree.getTreeStructureHash() + " size: " + currentTree.get_Clickabke_list().size());
+        log("find entry: " + currentTree.getActivityName() + "_" + currentTree.getTreeStructureHash() + " size: " + currentTree.getClickable_list().size());
         FragmentNode start = graphManager.getFragmentInGraph(currentTree);
         int limits = 0;
         while (start == null && limits < 5) {
