@@ -58,24 +58,24 @@ public class ViewTree implements Serializable {
         this.totalViewCount = totalViewCount;
     }
 
-    public List<String> clickabke_list;
+    public List<String> clickable_list;
 
     public void display_click() {
-        List<String> click_list = get_Clickabke_list();
+        List<String> click_list = getClickable_list();
         Collections.sort(click_list);
         for (String s : click_list) {
             log(s);
         }
     }
 
-    public void setClickabke_list(List<String> clickabke_list) {
-        this.clickabke_list = clickabke_list;
+    public void setClickable_list(List<String> clickable_list) {
+        this.clickable_list = clickable_list;
     }
 
 
-    public List<String> get_Clickabke_list() {
-        if (clickabke_list != null) {
-            return clickabke_list;
+    public List<String> getClickable_list() {
+        if (clickable_list != null) {
+            return clickable_list;
         }
 //        display(root, 0);
         ArrayList<String> list = new ArrayList<>();
@@ -93,8 +93,8 @@ public class ViewTree implements Serializable {
             }
             stack.addAll(node.getChildren());
         }
-        clickabke_list = list;
-        return clickabke_list;
+        clickable_list = list;
+        return clickable_list;
     }
 
     public int count_leaves(){
@@ -135,23 +135,23 @@ public class ViewTree implements Serializable {
 
     public static double calc_similarity(ViewTree new_tree, ViewTree old_tree){
         float match = 0f;
-        for (String s : new_tree.get_Clickabke_list()){
-            if (old_tree.get_Clickabke_list().contains(s)) {
+        for (String s : new_tree.getClickable_list()){
+            if (old_tree.getClickable_list().contains(s)) {
                 match += 1;
             }
         }
-        int tot = (new_tree.get_Clickabke_list().size() + old_tree.get_Clickabke_list().size());
+        int tot = (new_tree.getClickable_list().size() + old_tree.getClickable_list().size());
         return 2 * match / tot;
     }
 
     public double calc_similarity(List<String> clickable_list2){
         float match = 0f;
-        for (String s : clickabke_list){
+        for (String s : clickable_list){
             if (clickable_list2.contains(s)) {
                 match += 1;
             }
         }
-        int tot = (clickabke_list.size() + clickable_list2.size());
+        int tot = (clickable_list.size() + clickable_list2.size());
         return 2 * match / tot;
     }
 }

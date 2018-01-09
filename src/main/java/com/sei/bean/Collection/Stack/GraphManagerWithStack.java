@@ -182,7 +182,7 @@ public class GraphManagerWithStack extends UiTransition {
         currentFragmentNode = new RuntimeFragmentNode(new_tree);
         log("stack size: " + fragmentStack.getSize());
         graphManager.setActivityNode(new_tree.getActivityName());
-        graphManager.setFragmentNode(new_tree.getTreeStructureHash(), new_tree.get_Clickabke_list());
+        graphManager.setFragmentNode(new_tree.getTreeStructureHash(), new_tree.getClickable_list());
         log("graph adjust finished");
         currentFragmentChanged = true;
         return STACK_STATUS.NEW;

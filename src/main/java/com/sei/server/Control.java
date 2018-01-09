@@ -14,6 +14,7 @@ import fi.iki.elonen.NanoHTTPD;
 import fi.iki.elonen.util.ServerRunner;
 import org.json.JSONObject;
 
+import javax.naming.ldap.ControlFactory;
 import java.io.File;
 import java.util.*;
 
@@ -27,7 +28,7 @@ public class Control extends NanoHTTPD{
 
 
     public static void main(String[] argv) {
-        //setListeningPort();
+        setListeningPort();
         Control server = new Control();
         server.set_route_table();
         server.configure();
@@ -37,7 +38,7 @@ public class Control extends NanoHTTPD{
     }
 
     public Control(){
-        super(DEFAULT_PORT);
+        super(CommonUtil.DEFAULT_PORT);
     }
 
     public void register(String route, Handler handler){
@@ -166,7 +167,8 @@ public class Control extends NanoHTTPD{
     }
     public static void setListeningPort(){
         try {
-            String dir = "/home/mike/togithub/droidwalker/droidwalker/out/artifacts/droidwalker_jar/";
+            //String dir = "/home/mike/togithub/droidwalker/droidwalker/out/artifacts/droidwalker_jar/";
+            String dir = "./";
             File config = new File(dir + "config.json");
             if (!config.exists()) return;
             String content = CommonUtil.readFromFile(dir + "config.json");
@@ -188,6 +190,8 @@ public class Control extends NanoHTTPD{
 
             JSONObject device = (JSONObject) config_json.get("DEVICE");
             CommonUtil.HOST = "http://" + device.getString("IP") + ":6161";
+            if (device.has("SERIAL"))
+                CommonUtil.SERIAL = "-s " + device.getString("SERIAL");
             JSONObject app = (JSONObject) config_json.get("APP");
             CommonUtil.ADB_PATH = config_json.getString("ADB_PATH");
             if (device.has("SCREEN_WIDTH"))

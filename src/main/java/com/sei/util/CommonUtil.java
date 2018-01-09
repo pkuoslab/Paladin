@@ -2,6 +2,8 @@ package com.sei.util;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -19,6 +21,7 @@ public class CommonUtil {
     public static String ADB_PATH = "/home/mike/Android/Sdk/platform-tools/";
     public static int SCREEN_X = 0;
     public static String PASSWORD = "monkeymonkey";
+    public static String SERIAL = "";
     public static Random random = new Random(266); //trail : 259
 
 
@@ -66,6 +69,8 @@ public class CommonUtil {
     }
 
     public static void log(String info) {
-        System.out.println(info);
+        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+        String S = new SimpleDateFormat("MM-dd HH:mm:ss").format(timestamp);
+        System.out.println(S + "\t" + info);
     }
 }

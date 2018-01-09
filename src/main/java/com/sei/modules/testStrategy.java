@@ -35,7 +35,7 @@ public class testStrategy extends Strategy {
 
         //GraphManager.initiate(currentTree);
         //ConnectUtil.upload(currentTree, GraphManager.appGraph);
-        List<String> xpaths = currentTree.get_Clickabke_list();
+        List<String> xpaths = currentTree.getClickable_list();
         List<Integer> foots = new ArrayList<>();
         int xpath_index = shuffle(foots, xpaths.size());
         String xpath = xpaths.get(xpath_index);

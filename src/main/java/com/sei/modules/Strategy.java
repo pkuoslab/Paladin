@@ -3,9 +3,7 @@ package com.sei.modules;
 import com.sei.bean.Collection.Graph.GraphManager;
 import com.sei.bean.Collection.Stack.GraphManagerWithStack;
 import com.sei.bean.View.ViewTree;
-import com.sei.util.ClientUtil;
-import com.sei.util.CommonUtil;
-import com.sei.util.ConnectUtil;
+import com.sei.util.*;
 
 import static com.sei.util.CommonUtil.log;
 
@@ -28,9 +26,24 @@ public class Strategy extends Thread {
         }
 
         if (currentTree == null) {
+            log("can not get tree, restart DroidWalker");
+            start_droidwalker();
+        }
+
+        for (int i = 0; i < 10; i++) {
+            ClientUtil.initiate();
+            currentTree = ClientUtil.getCurrentTree();
+            if (currentTree != null) {
+                return true;
+            }
+            CommonUtil.sleep(1500);
+        }
+
+        if (currentTree == null){
             log("can not get tree, give up");
             return false;
         }
+
         return true;
     }
 
@@ -58,5 +71,17 @@ public class Strategy extends Thread {
             return false;
         }else
             return true;
+    }
+
+    void start_droidwalker(){
+        ConnectUtil.force_stop("ias.deepsearch.com.helper");
+        ConnectUtil.force_stop(ConnectUtil.launch_pkg);
+        CommonUtil.sleep(2000);
+        ClientUtil.startPkg("ias.deepsearch.com.helper");
+        ShellUtils.execCommand(CommonUtil.ADB_PATH + "adb " + CommonUtil.SERIAL + " shell input keyevent KEYCODE_HOME");
+        CommonUtil.sleep(2000);
+        ShellUtils.execCommand(CommonUtil.ADB_PATH + "adb " + CommonUtil.SERIAL + " forward tcp:6161 tcp:6161");
+
+        ClientUtil.startApp(ConnectUtil.launch_pkg);
     }
 }

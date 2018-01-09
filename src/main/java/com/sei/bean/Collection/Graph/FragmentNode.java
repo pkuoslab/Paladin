@@ -44,7 +44,7 @@ public class FragmentNode {
 
 
     public FragmentNode(ViewTree tree){
-        this(tree.getTreeStructureHash(), tree.get_Clickabke_list());
+        this(tree.getTreeStructureHash(), tree.getClickable_list());
         this.activity = tree.getActivityName();
     }
 

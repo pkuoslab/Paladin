@@ -58,7 +58,7 @@ public class GraphManager extends UiTransition{
             activityNode.appendFragment(fragmentNode);
         }else{
             setActivityNode(currentTree.getActivityName());
-            setFragmentNode(currentTree.getTreeStructureHash(), currentTree.get_Clickabke_list());
+            setFragmentNode(currentTree.getTreeStructureHash(), currentTree.getClickable_list());
         }
         registerAllHandlers();
     }
@@ -204,8 +204,7 @@ public class GraphManager extends UiTransition{
         }
 
         //ClientUtil.execute_action(Action.action_list.ENTERTEXT, CommonUtil.PASSWORD);
-        ShellUtils2.execCommand(CommonUtil.ADB_PATH + "adb shell input text " + CommonUtil.PASSWORD);
-        log("password: " + CommonUtil.PASSWORD);
+        ShellUtils2.execCommand(CommonUtil.ADB_PATH + "adb " + CommonUtil.SERIAL  +" shell input text " + CommonUtil.PASSWORD);
         for (ViewNode node : nodes){
             if (node.getViewText() != null && node.getViewText().contains("登录")){
                 log("log in");

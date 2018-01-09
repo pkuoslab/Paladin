@@ -89,7 +89,7 @@ public class ActivityNode {
 //
 //        }
 //        return null;
-        return find_Fragment(vt.getTreeStructureHash(), vt.get_Clickabke_list());
+        return find_Fragment(vt.getTreeStructureHash(), vt.getClickable_list());
     }
 
     public FragmentNode find_Fragment_in_graph(ViewTree vt){
@@ -102,13 +102,13 @@ public class ActivityNode {
         for (FragmentNode vc : fragments){
             float match = 0f;
             for (String s : vc.get_Clickable_list()){
-                if (vt.get_Clickabke_list().contains(s)) {
+                if (vt.getClickable_list().contains(s)) {
 //                    Log.i("liuyi", s);
                     match += 1;
                 }
             }
-            int tot = (vc.get_Clickable_list().size() + vt.get_Clickabke_list().size());
-            //log(vc.getStructure_hash() + " match : " + 2 * match + " size: " + tot + " rate: " + 2 * match / tot);
+            int tot = (vc.get_Clickable_list().size() + vt.getClickable_list().size());
+            log(vc.getStructure_hash() + " match : " + 2 * match + " size: " + tot + " rate: " + 2 * match / tot);
             if (2 * match / tot >= 0.9){
 //                FragmentNode fc = new FragmentNode(vt.treeStructureHash, vt);
                 return vc;

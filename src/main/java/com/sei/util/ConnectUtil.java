@@ -48,13 +48,20 @@ public class ConnectUtil {
         return sendHttpGet(request);
     }
 
-    public static String sendOrderBeforeReadFile(String method, String args, String FilePath){
+    public static String sendOrderBeforeReadFile(String method, String args){
         String status = sendInstruction(method, args);
         String retStr = "";
         //log("status: " + status);
         if (status.contains("Success")) {
-            ShellUtils2.execCommand(CommonUtil.ADB_PATH + "adb pull sdcard/tree.json " + CommonUtil.DIR);
-            retStr = CommonUtil.readFromFile(FilePath);
+            int index = CommonUtil.SERIAL.indexOf(" ");
+            String tree_file;
+            if (index != -1)
+                tree_file = "tree-" + CommonUtil.SERIAL.substring(index+1) + ".json";
+            else
+                tree_file = "tree.json";
+
+            ShellUtils2.execCommand(CommonUtil.ADB_PATH + "adb " + CommonUtil.SERIAL + " pull sdcard/tree.json " + CommonUtil.DIR + tree_file);
+            retStr = CommonUtil.readFromFile(CommonUtil.DIR + tree_file);
         }else {
             log("Client fail to write");
         }
@@ -82,24 +89,6 @@ public class ConnectUtil {
             return e.getMessage();
         }
     }
-
-//    public static void upload(ViewTree tree, AppGraph appGraph, FragmentStack fstack){
-//        RequestParams params = new RequestParams();
-//        params.add("config", SerializeUtil.toBase64(appGraph));
-//        params.add("current", tree.getActivityName() + "_" + tree.getTreeStructureHash());
-//        params.add("stack", SerializeUtil.toBase64(fstack));
-//        sClient.post(CommonUtil.SERVER + "/upload", params, new TextHttpResponseHandler(){
-//            @Override
-//            public void onFailure(int statusCode, Header[] headers, String responseString, Throwable throwable) {
-//                log("upload failure???");
-//            }
-//
-//            @Override
-//            public void onSuccess(int statusCode, Header[] headers, String responseString) {
-//                log("upload success!");
-//            }
-//        });
-//    }
 
     public static void asyncPostJson(String json, String url){
         final MediaType JSON = MediaType.parse("application/json;charset=utf-8");
@@ -163,6 +152,6 @@ public class ConnectUtil {
     }
 
     public static void force_stop(String pkg){
-        ShellUtils2.execCommand(CommonUtil.ADB_PATH + "adb shell am force-stop " + pkg);
+        ShellUtils2.execCommand(CommonUtil.ADB_PATH + "adb " + CommonUtil.SERIAL + " shell am force-stop " + pkg);
     }
 }

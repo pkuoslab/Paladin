@@ -71,6 +71,6 @@ public class RuntimeFragmentNode {
         this();
         structure_hash = tree.getTreeStructureHash();
         activity = tree.getActivityName();
-        clickable_list = tree.get_Clickabke_list();
+        clickable_list = tree.getClickable_list();
     }
 }

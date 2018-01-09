@@ -24,7 +24,26 @@ public class ClientUtil{
     }
 
     public static void main(String[] argv){
-        log("foreground app: " + getForegroundPkg());
+        //log("foreground app: " + getForegroundPkg());
+        return;
+    }
+
+    public static void record(String ins, int test_case){
+        if (ins.equals("start"))
+            ConnectUtil.sendInstruction("record", "start;" + test_case);
+        else if (ins.equals("stop"))
+            ConnectUtil.sendInstruction("record", "stop");
+    }
+
+    public static String execute_action(int action, String path, Boolean refresh){
+        String trans = URLEncoder.encode(path);
+        String status = "";
+        switch (action){
+            case Action.action_list.CLICK:
+                status = ConnectUtil.sendInstruction("execute_action", "click;" + trans + ";true");
+                break;
+        }
+        return status;
     }
 
     public static String execute_action(int action, String path){
@@ -74,12 +93,12 @@ public class ClientUtil{
     }
 
     public static ViewTree getCurrentTree(){
-        String treeStr = ConnectUtil.sendOrderBeforeReadFile("getCurrentTree", "", CommonUtil.DIR + "tree.json");
+        String treeStr = ConnectUtil.sendOrderBeforeReadFile("getCurrentTree", "");
         ViewTree tree = null;
         if (treeStr != "")
             tree = (ViewTree) SerializeUtil.toObject(treeStr, ViewTree.class);
         else{
-            treeStr = ConnectUtil.sendOrderBeforeReadFile("getCurrentTree", "", "tree.json");
+            treeStr = ConnectUtil.sendOrderBeforeReadFile("getCurrentTree", "");
             if (treeStr != "")
                 tree = (ViewTree) SerializeUtil.toObject(treeStr, ViewTree.class);
         }
@@ -88,6 +107,10 @@ public class ClientUtil{
 
     public static void initiate(){
         ConnectUtil.sendInstruction("initiate", "");
+    }
+
+    public static void initiate(int pid){
+        ConnectUtil.sendInstruction("initiate", String.valueOf(pid));
     }
 
     public static void setScreenSize(int x){
@@ -113,8 +136,8 @@ public class ClientUtil{
         }
     }
 
-    public static String getForegroundPkg(){
-        String command = CommonUtil.ADB_PATH + "adb shell dumpsys activity activities";
+    public static String getForeground(String info){
+        String command = CommonUtil.ADB_PATH + "adb " + CommonUtil.SERIAL + " shell dumpsys activity activities";
         ShellUtils2.CommandResult commandResult = ShellUtils2.execCommand(command);
         String dumpInfo = commandResult.successMsg;
         //log("dumpinfo: " + dumpInfo);
@@ -123,9 +146,15 @@ public class ClientUtil{
         String result = "";
         if (m.find()){
             result = m.group(0);
-            int start = result.indexOf(":");
-            int stop = result.indexOf("/");
-            result = result.substring(start + 1, stop);
+            if (info.equals("PKG")) {
+                int start = result.indexOf(":");
+                int stop = result.indexOf("/");
+                result = result.substring(start + 1, stop);
+            }else if (info.equals("PID")){
+                int start = result.indexOf(" ");
+                int stop = result.indexOf(":");
+                result = result.substring(start + 1, stop);
+            }
         }
 
         return result;
@@ -141,7 +170,7 @@ public class ClientUtil{
         }else if(status.contains("PidChange")){
 //            需要确认当前的Foreground package
             CommonUtil.sleep(1000);
-            String pkgName = getForegroundPkg();
+            String pkgName = getForeground("PKG");
             pkgName = pkgName.replace("\n", "");
             if (pkgName.contains(ConnectUtil.prefix)) {
                 ConnectUtil.current_pkg = pkgName;
@@ -178,10 +207,15 @@ public class ClientUtil{
     }
 
     public static void startApp(String pkg){
-        String command = CommonUtil.ADB_PATH + "adb shell monkey -p " + pkg + " -c android.intent.category.LAUNCHER 1";
+        String command = CommonUtil.ADB_PATH + "adb " + CommonUtil.SERIAL + " shell monkey -p " + pkg + " -c android.intent.category.LAUNCHER 1";
         ShellUtils2.execCommand(command);
         CommonUtil.sleep(8000);
         ConnectUtil.setUp(pkg);
-        ClientUtil.setScreenSize(CommonUtil.SCREEN_X);
+    }
+
+    public static void startPkg(String pkg){
+        String command = CommonUtil.ADB_PATH + "adb " + CommonUtil.SERIAL + " shell monkey -p " + pkg + " -c android.intent.category.LAUNCHER 1";
+        ShellUtils2.execCommand(command);
+        CommonUtil.sleep(2000);
     }
 }
