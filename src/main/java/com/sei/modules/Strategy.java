@@ -14,10 +14,10 @@ public class Strategy extends Thread {
     public volatile boolean EXIT = false;
     public volatile boolean RUNNING = false;
 
-    public Boolean initiate(){
-        ClientUtil.initiate();
+    public Boolean refresh(){
+        ClientUtil.refreshUI();
         for (int i = 0; i < 10; i++) {
-            ClientUtil.initiate();
+            ClientUtil.refreshUI();
             currentTree = ClientUtil.getCurrentTree();
             if (currentTree != null) {
                 return true;
@@ -31,7 +31,7 @@ public class Strategy extends Thread {
         }
 
         for (int i = 0; i < 10; i++) {
-            ClientUtil.initiate();
+            ClientUtil.refreshUI();
             currentTree = ClientUtil.getCurrentTree();
             if (currentTree != null) {
                 return true;
@@ -47,8 +47,8 @@ public class Strategy extends Thread {
         return true;
     }
 
-    public Boolean initiate(int limit){
-        if (initiate())
+    public Boolean refresh(int limit){
+        if (refresh())
             return true;
         else{
             int time = 0;
@@ -66,7 +66,7 @@ public class Strategy extends Thread {
     public Boolean restart(){
         ConnectUtil.force_stop(ConnectUtil.launch_pkg);
         ClientUtil.startApp(ConnectUtil.launch_pkg);
-        if (!initiate()){
+        if (!refresh()){
             log("restart app failure");
             return false;
         }else

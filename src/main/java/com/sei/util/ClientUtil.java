@@ -105,12 +105,8 @@ public class ClientUtil{
         return tree;
     }
 
-    public static void initiate(){
-        ConnectUtil.sendInstruction("initiate", "");
-    }
-
-    public static void initiate(int pid){
-        ConnectUtil.sendInstruction("initiate", String.valueOf(pid));
+    public static void refreshUI(){
+        ConnectUtil.sendInstruction("refreshUI", "");
     }
 
     public static void setScreenSize(int x){
@@ -211,6 +207,7 @@ public class ClientUtil{
         ShellUtils2.execCommand(command);
         CommonUtil.sleep(8000);
         ConnectUtil.setUp(pkg);
+
     }
 
     public static void startPkg(String pkg){

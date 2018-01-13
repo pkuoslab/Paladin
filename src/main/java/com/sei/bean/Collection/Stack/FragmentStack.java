@@ -142,7 +142,7 @@ public class FragmentStack {
             return recover(position);
         }else{
             CommonUtil.sleep(5000);
-            ClientUtil.initiate();
+            ClientUtil.refreshUI();
             tree = ClientUtil.getCurrentTree();
             position = getPosition(tree);
             if (position == -1) {

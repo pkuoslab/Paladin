@@ -31,7 +31,7 @@ public class DepthFirstTraversal extends Strategy {
 
     public void run(){
         try {
-            if (!initiate(5)) return;
+            if (!refresh(5)) return;
             checkLogin();
 
             graphManager.graphManagerFactor(currentTree);
@@ -149,7 +149,7 @@ public class DepthFirstTraversal extends Strategy {
     public Boolean restart(){
         ConnectUtil.force_stop(ConnectUtil.launch_pkg);
         ClientUtil.startApp(ConnectUtil.launch_pkg);
-        if (!initiate()){
+        if (!refresh()){
             log("restart app failure");
             return false;
         }else
@@ -187,7 +187,7 @@ public class DepthFirstTraversal extends Strategy {
     void checkLogin(){
         if (currentTree.getActivityName().contains("ui.account.LoginPasswordUI")){
             graphManager.handleLogin(currentTree);
-            ClientUtil.initiate();
+            ClientUtil.refreshUI();
             currentTree = ClientUtil.getCurrentTree();
         }
     }
