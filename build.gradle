@@ -11,5 +11,7 @@ repositories {
 
 dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
+    compile 'org.jsoup:jsoup:1.11.2'
+    compile 'com.neovisionaries:nv-websocket-client:2.3'
     compile fileTree(include: ['*.jar'], dir: 'libs')
 }

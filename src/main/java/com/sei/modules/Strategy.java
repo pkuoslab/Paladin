@@ -78,9 +78,9 @@ public class Strategy extends Thread {
         ConnectUtil.force_stop(ConnectUtil.launch_pkg);
         CommonUtil.sleep(2000);
         ClientUtil.startPkg("ias.deepsearch.com.helper");
-        ShellUtils.execCommand(CommonUtil.ADB_PATH + "adb " + CommonUtil.SERIAL + " shell input keyevent KEYCODE_HOME");
+        ShellUtils2.execCommand(CommonUtil.ADB_PATH + "adb " + CommonUtil.SERIAL + " shell input keyevent KEYCODE_HOME");
         CommonUtil.sleep(2000);
-        ShellUtils.execCommand(CommonUtil.ADB_PATH + "adb " + CommonUtil.SERIAL + " forward tcp:6161 tcp:6161");
+        ShellUtils2.execCommand(CommonUtil.ADB_PATH + "adb " + CommonUtil.SERIAL + " forward tcp:6161 tcp:6161");
 
         ClientUtil.startApp(ConnectUtil.launch_pkg);
     }

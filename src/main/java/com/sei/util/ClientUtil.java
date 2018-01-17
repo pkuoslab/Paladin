@@ -170,7 +170,7 @@ public class ClientUtil{
             pkgName = pkgName.replace("\n", "");
             if (pkgName.contains(ConnectUtil.prefix)) {
                 ConnectUtil.current_pkg = pkgName;
-                ConnectUtil.sendInstruction("initiate", "");
+                ClientUtil.refreshUI();
                 ViewTree tree = ClientUtil.getCurrentTree();
                 if (tree == null) {
                     return Status.OUT;
@@ -182,7 +182,7 @@ public class ClientUtil{
                 log("Process changed: " + status.replace("\n", "") + " prefix: " + ConnectUtil.prefix + " pkgname: " + pkgName);
                 String s = ConnectUtil.sendInstruction("execute_action", "back;");
                 if (!s.contains("Stop")) {
-                    ConnectUtil.sendInstruction("initiate", "");
+                    ClientUtil.refreshUI();
                     ViewTree tree = ClientUtil.getCurrentTree();
                     if (tree == null)
                         return Status.OUT;

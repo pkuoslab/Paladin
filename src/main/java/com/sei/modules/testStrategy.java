@@ -18,9 +18,9 @@ import static com.sei.util.CommonUtil.shuffle;
 
 public class testStrategy extends Strategy {
     public void run(){
-        ClientUtil.initiate();
+        ClientUtil.refreshUI();
         for (int i = 0; i < 10; i++) {
-            ClientUtil.initiate();
+            ClientUtil.refreshUI();
             currentTree = ClientUtil.getCurrentTree();
             if (currentTree != null) {
                 break;

@@ -128,7 +128,7 @@ public class GraphManagerWithStack extends UiTransition {
             public int adjust(Action action, ViewTree currentTree, ViewTree new_tree) {
                 int refresh = graphManager.handleLogin(new_tree);
                 if (refresh == GraphManager.REFRESH.YES){
-                    ClientUtil.initiate();
+                    ClientUtil.refreshUI();
                     new_tree = ClientUtil.getCurrentTree();
                 }
 

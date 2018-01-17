@@ -148,7 +148,7 @@ public class ModelReplay extends Strategy {
         int limits = 0;
         while (start == null && limits < 5) {
             CommonUtil.sleep(2000);
-            ClientUtil.initiate();
+            ClientUtil.refreshUI();
             currentTree = ClientUtil.getCurrentTree();
             start = graphManager.getFragmentInGraph(currentTree);
             limits += 1;

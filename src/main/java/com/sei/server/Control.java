@@ -4,6 +4,7 @@ import com.sei.bean.Collection.Graph.GraphManager;
 import com.sei.modules.DepthFirstTraversal;
 import com.sei.modules.ModelReplay;
 import com.sei.modules.Strategy;
+import com.sei.modules.plugin.WebviewService;
 import com.sei.modules.testStrategy;
 import com.sei.server.component.Handler;
 import com.sei.util.ClientUtil;
@@ -33,8 +34,9 @@ public class Control extends NanoHTTPD{
         server.set_route_table();
         server.configure();
         System.out.println("listening on: " + DEFAULT_PORT);
+        WebviewService webviewService = new WebviewService();
+        webviewService.start();
         ServerRunner.run(Control.class);
-
     }
 
     public Control(){
@@ -208,8 +210,8 @@ public class Control extends NanoHTTPD{
 
             if (app.getString("STRATEGY").equals("DFS")){
                 log("strategy: " + app.getString("STRATEGY"));
-                strategy = new DepthFirstTraversal(graphManager);
-                strategy.start();
+                //strategy = new DepthFirstTraversal(graphManager);
+                // strategy.start();
             }
         }catch (Exception e){
             e.printStackTrace();
