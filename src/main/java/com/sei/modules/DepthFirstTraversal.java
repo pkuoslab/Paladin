@@ -5,6 +5,7 @@ import com.sei.bean.Collection.Stack.GraphManagerWithStack;
 import com.sei.bean.View.Action;
 import com.sei.bean.View.ViewNode;
 import com.sei.bean.View.ViewTree;
+import com.sei.server.Control;
 import com.sei.util.ClientUtil;
 import com.sei.util.CommonUtil;
 import com.sei.util.ConnectUtil;
@@ -31,6 +32,8 @@ public class DepthFirstTraversal extends Strategy {
 
     public void run(){
         try {
+            if(checkPermission()) restart();
+
             if (!refresh(5)) return;
             checkLogin();
 
@@ -117,8 +120,11 @@ public class DepthFirstTraversal extends Strategy {
                 }
                 currentTree = ClientUtil.getCurrentTree();
             }
+
+            Control.finished = true;
         }catch (Exception e){
             e.printStackTrace();
+            Control.finished = true;
             return;
         }
     }
@@ -151,6 +157,7 @@ public class DepthFirstTraversal extends Strategy {
         ClientUtil.startApp(ConnectUtil.launch_pkg);
         if (!refresh()){
             log("restart app failure");
+            Control.finished = true;
             return false;
         }else
             return true;
@@ -161,6 +168,7 @@ public class DepthFirstTraversal extends Strategy {
             //manager.save();
             return false;
         }
+        Control.finished = true;
         log("stop");
         return true;
     }
@@ -170,12 +178,12 @@ public class DepthFirstTraversal extends Strategy {
         Action action;
         int response = ClientUtil.checkStatus(status);
         if (response == Status.SAME){
-//            ViewNode vn= ViewUtil.getViewByPath(currentTree.root, path);
-//            if (vn != null && vn.getViewTag().contains("EditText")){
-//                response = ClientUtil.checkStatus(ClientUtil.execute_action(Action.action_list.ENTERTEXT, "testing"));
-//                action = new Action(path, Action.action_list.ENTERTEXT, "testing");
-//            }else
-//                action = null;
+            ViewNode vn= ViewUtil.getViewByPath(currentTree.root, path);
+            if (vn != null && vn.getViewTag().contains("EditText")){
+                response = ClientUtil.checkStatus(ClientUtil.execute_action(Action.action_list.ENTERTEXT, "testing"));
+                action = new Action(path, Action.action_list.ENTERTEXT, "testing");
+            }else
+                action = null;
             action = null;
         }else
             action = new Action(path, Action.action_list.CLICK);

@@ -44,6 +44,7 @@ public class MessageFactory {
         if (id == JS.ALL_LOC){
             js = "var nodes = JSON.parse('" + html_nodes + "');" +
                     "var ret_Object = new Object();" +
+                    "var ratio = window.devicePixelRatio;" +
                     "for(var node of nodes){" +
                     "xpath = node['path'];" +
                     "ret = document.evaluate(xpath, document, " +
@@ -51,10 +52,10 @@ public class MessageFactory {
                     "element = ret.snapshotItem(0);" +
                     "rect_list = element.getBoundingClientRect();" +
                     "rec = rect_list;" +
-                    "node.x = (rec['left'] + rec['right']) / 2;" +
-                    "node.y = (rec['top'] + rec['bottom']) / 2;" +
-                    "node.h = rec['height'];" +
-                    "node.w = rec['width'];" +
+                    "node.x = ((rec['left'] + rec['right']) * ratio) / 2;" +
+                    "node.y = ((rec['top'] + rec['bottom']) * ratio) / 2;" +
+                    "node.h = rec['height'] * ratio;" +
+                    "node.w = rec['width'] * ratio;" +
                     "}" +
                     "nodes";
         }

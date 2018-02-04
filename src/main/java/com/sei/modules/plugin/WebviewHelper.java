@@ -65,7 +65,7 @@ public class WebviewHelper extends NanoHTTPD{
                 // /query?info={"x":123, "y": 456, "pid" : 1080}
                 String query = session.getQueryParameterString();
                 JSONObject jo = JSONObject.parseObject(query.substring(5));
-                log("query: " + jo.toJSONString());
+                //log("query: " + jo.toJSONString());
                 String nodes = getHTMLNodes(jo);
                 return newFixedLengthResponse(nodes);
             }
@@ -123,6 +123,7 @@ public class WebviewHelper extends NanoHTTPD{
         }
 
         client.close();
+        //log(html_nodes_annotated);
         return html_nodes_annotated;
     }
 

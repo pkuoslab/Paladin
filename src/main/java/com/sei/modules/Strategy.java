@@ -2,8 +2,11 @@ package com.sei.modules;
 
 import com.sei.bean.Collection.Graph.GraphManager;
 import com.sei.bean.Collection.Stack.GraphManagerWithStack;
+import com.sei.bean.View.ViewNode;
 import com.sei.bean.View.ViewTree;
 import com.sei.util.*;
+
+import java.util.List;
 
 import static com.sei.util.CommonUtil.log;
 
@@ -64,13 +67,43 @@ public class Strategy extends Thread {
     }
 
     public Boolean restart(){
-        ConnectUtil.force_stop(ConnectUtil.launch_pkg);
-        ClientUtil.startApp(ConnectUtil.launch_pkg);
+        //ConnectUtil.force_stop(ConnectUtil.launch_pkg);
+        //ClientUtil.startApp(ConnectUtil.launch_pkg);
         if (!refresh()){
             log("restart app failure");
             return false;
         }else
             return true;
+    }
+
+    public static Boolean checkPermission(){
+        Boolean checked = false;
+
+        String f = ClientUtil.getForeground();
+        while (f.contains("packageinstaller")){
+            checked = true;
+            ConnectUtil.current_pkg = "com.android.packageinstaller";
+            ClientUtil.refreshUI();
+            ViewTree tree = ClientUtil.getTree();
+            if (tree == null || tree.root == null) break;
+
+            List<ViewNode> nodes = tree.get_clickable_nodes();
+
+            for(ViewNode node : nodes){
+                if (node.getViewTag().contains("Button") && node.getViewText().contains("Allow")) {
+                    int x = node.getX() + node.getWidth() / 2;
+                    int y = node.getY() + node.getHeight() / 2;
+                    ClientUtil.click(x, y);
+                    break;
+                }
+            }
+            f = ClientUtil.getForeground();
+            CommonUtil.sleep(500);
+        }
+
+        ConnectUtil.force_stop("com.android.packageinstaller");
+        ConnectUtil.current_pkg = ConnectUtil.launch_pkg;
+        return checked;
     }
 
     void start_droidwalker(){

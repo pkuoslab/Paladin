@@ -8,6 +8,7 @@ import java.net.URLEncoder;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static com.sei.modules.Strategy.checkPermission;
 import static com.sei.util.CommonUtil.log;
 
 /**
@@ -105,6 +106,12 @@ public class ClientUtil{
         return tree;
     }
 
+    public static ViewTree getTree(){
+        String treeStr = ConnectUtil.sendInstruction("getTree", "");
+        ViewTree tree = (ViewTree) SerializeUtil.toObject(treeStr, ViewTree.class);
+        return tree;
+    }
+
     public static void refreshUI(){
         ConnectUtil.sendInstruction("refreshUI", "");
     }
@@ -132,7 +139,7 @@ public class ClientUtil{
         }
     }
 
-    public static String getForeground(String info){
+    public static String getForeground(){
         String command = CommonUtil.ADB_PATH + "adb " + CommonUtil.SERIAL + " shell dumpsys activity activities";
         ShellUtils2.CommandResult commandResult = ShellUtils2.execCommand(command);
         String dumpInfo = commandResult.successMsg;
@@ -142,15 +149,9 @@ public class ClientUtil{
         String result = "";
         if (m.find()){
             result = m.group(0);
-            if (info.equals("PKG")) {
-                int start = result.indexOf(":");
-                int stop = result.indexOf("/");
-                result = result.substring(start + 1, stop);
-            }else if (info.equals("PID")){
-                int start = result.indexOf(" ");
-                int stop = result.indexOf(":");
-                result = result.substring(start + 1, stop);
-            }
+            int start = result.indexOf(":");
+            int stop = result.indexOf("/");
+            result = result.substring(start + 1, stop);
         }
 
         return result;
@@ -166,7 +167,7 @@ public class ClientUtil{
         }else if(status.contains("PidChange")){
 //            需要确认当前的Foreground package
             CommonUtil.sleep(1000);
-            String pkgName = getForeground("PKG");
+            String pkgName = getForeground();
             pkgName = pkgName.replace("\n", "");
             if (pkgName.contains(ConnectUtil.prefix)) {
                 ConnectUtil.current_pkg = pkgName;
@@ -178,21 +179,32 @@ public class ClientUtil{
             }else if(pkgName.contains("launcher")) {
                 log("return to launcher, need recover");
                 return Status.OUT;
+            }else if (pkgName.contains("packageinstaller")){
+                checkPermission();
+                return Status.OUT;
             }else{
                 log("Process changed: " + status.replace("\n", "") + " prefix: " + ConnectUtil.prefix + " pkgname: " + pkgName);
-                String s = ConnectUtil.sendInstruction("execute_action", "back;");
-                if (!s.contains("Stop")) {
-                    ClientUtil.refreshUI();
-                    ViewTree tree = ClientUtil.getCurrentTree();
-                    if (tree == null)
-                        return Status.OUT;
-                    else
-                        return Status.SAME;
-                }else
+                ShellUtils2.execCommand("adb -s " + CommonUtil.SERIAL + " shell input keyevent 4");
+                ClientUtil.refreshUI();
+                ViewTree tree = ClientUtil.getCurrentTree();
+                if (tree == null)
                     return Status.OUT;
+                else
+                    return Status.SAME;
+//                String s = ConnectUtil.sendInstruction("execute_action", "back;");
+//                if (!s.contains("Stop")) {
+//                    ClientUtil.refreshUI();
+//                    ViewTree tree = ClientUtil.getCurrentTree();
+//                    if (tree == null)
+//                        return Status.OUT;
+//                    else
+//                        return Status.SAME;
+//                }else
+//                    return Status.OUT;
             }
             return Status.PIDCHANGE;
         }else {
+            log("error: " + status);
             return Status.OUT;
         }
     }

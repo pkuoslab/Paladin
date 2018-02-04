@@ -26,13 +26,14 @@ public class Control extends NanoHTTPD{
     GraphManager graphManager = new GraphManager();
     Strategy strategy;
     public static HashMap<String, Handler> route_table = new HashMap<>();
+    public static Boolean finished = false;
 
 
     public static void main(String[] argv) {
         setListeningPort();
         Control server = new Control();
         server.set_route_table();
-        server.configure();
+        server.configure(argv);
         System.out.println("listening on: " + DEFAULT_PORT);
         WebviewService webviewService = new WebviewService();
         webviewService.start();
@@ -51,6 +52,16 @@ public class Control extends NanoHTTPD{
             @Override
             public Response onRequest(IHTTPSession session) {
                 return newFixedLengthResponse("hello!!!");
+            }
+        });
+
+        register("/finish", new Handler() {
+            @Override
+            public Response onRequest(IHTTPSession session) {
+                if (finished)
+                    return newFixedLengthResponse("yes");
+                else
+                    return newFixedLengthResponse("no");
             }
         });
 
@@ -182,7 +193,7 @@ public class Control extends NanoHTTPD{
 
     }
 
-    void configure(){
+    void configure(String[] argv){
         String dir = "./";
         File config = new File(dir + "config.json");
         if (!config.exists()) return;
@@ -201,7 +212,10 @@ public class Control extends NanoHTTPD{
             if (app.has("PASSWORD"))
                 CommonUtil.PASSWORD = app.getString("PASSWORD");
 
-            ClientUtil.startApp(app.getString("PACKAGE"));
+            if (argv.length > 1)
+                ClientUtil.startApp(argv[1]);
+            else
+                ClientUtil.startApp(app.getString("PACKAGE"));
 
             File graph = new File(dir + "./graph.json");
 
@@ -210,8 +224,8 @@ public class Control extends NanoHTTPD{
 
             if (app.getString("STRATEGY").equals("DFS")){
                 log("strategy: " + app.getString("STRATEGY"));
-                //strategy = new DepthFirstTraversal(graphManager);
-                // strategy.start();
+                strategy = new DepthFirstTraversal(graphManager);
+                //strategy.start();
             }
         }catch (Exception e){
             e.printStackTrace();

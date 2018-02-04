@@ -95,36 +95,73 @@ public class ModelReplay extends Strategy {
         log("path size: " + path.size());
         ClientUtil.record("start", ++test_case);
 
+        long t1 = System.currentTimeMillis();
+
         for(int i = path.size()-1; i >=0; i--){
             Action action = path.get(i).getSecond();
             FragmentNode expect_node = path.get(i).getFirst();
-            ClientUtil.checkStatus(ClientUtil.execute_action(Action.action_list.CLICK, action.path, true));
+            String sub_path = currentTree.matchPath(action.path);
+            ClientUtil.checkStatus(ClientUtil.execute_action(Action.action_list.CLICK, sub_path, true));
             if (action.getAction() == Action.action_list.ENTERTEXT)
                 ClientUtil.checkStatus(ClientUtil.execute_action(action.getAction(), action.getContent()));
 
             currentTree = ClientUtil.getCurrentTree();
             if (currentTree == null) return visited_along_path;
 
-            if (!currentTree.getActivityName().equals("null"))
+            if (!currentTree.getActivityName().equals("null")) {
                 if (!currentTree.getActivityName().equals(expect_node.getActivity())) {
                     log("Activity not match, expect: " + expect_node.getActivity() +
                             " jump to: " + currentTree.getActivityName());
-                    return visited_along_path;
-                }
-
-            if (expect_node.getStructure_hash() != currentTree.getTreeStructureHash()){
-                double similarity = currentTree.calc_similarity(expect_node.get_Clickable_list());
-                if (similarity < CommonUtil.SIMILARITY){
-                    log("jumped to unqualified node " + currentTree.getTreeStructureHash() +
-                    " compared to " + expect_node.getStructure_hash() + " " + similarity);
+                    long t2 = System.currentTimeMillis();
+                    double s = (t2 - t1) / 1000.0;
+                    log("time: " + s);
                     return visited_along_path;
                 }
             }
 
+            if (expect_node.getStructure_hash() != currentTree.getTreeStructureHash()){
+                double similarity = currentTree.calc_similarity(expect_node.get_Clickable_list());
+                if (similarity < CommonUtil.SIMILARITY){
+                    log("jump to unqualify node : " + currentTree.getTreeStructureHash() +
+                    " expect: " + expect_node.getSignature());
+                    long t2 = System.currentTimeMillis();
+                    double s = (t2 - t1) / 1000.0;
+                    log("time: " + s);
+                    return visited_along_path;
+                }
+            }
             visited_along_path.add(expect_node.getSignature());
+
+//            Boolean pass = false;
+//            int j = i;
+//            for (; j >=0; j--){
+//                expect_node = path.get(j).getFirst();
+//                if (expect_node.getStructure_hash() != currentTree.getTreeStructureHash()){
+//                    double similarity = currentTree.calc_similarity(expect_node.get_Clickable_list());
+//                    if (similarity > CommonUtil.SIMILARITY){
+//                        visited_along_path.add(expect_node.getSignature());
+//                        pass = true;
+//                        break;
+//                    }
+//                }
+//            }
+//
+//            if (!pass){
+//                log("jump to unqualify node: " + currentTree.getTreeStructureHash());
+//                long t2 = System.currentTimeMillis();
+//                double s = (t2 - t1) / 1000.0;
+//                log("time: " + s);
+//                return visited_along_path;
+//            }
+//
+//            i = j;
         }
 
         ClientUtil.record("stop", 0);
+        long t2 = System.currentTimeMillis();
+        double s = (t2 - t1) / 1000.0;
+        log("time: " + s);
+
         return visited_along_path;
     }
 

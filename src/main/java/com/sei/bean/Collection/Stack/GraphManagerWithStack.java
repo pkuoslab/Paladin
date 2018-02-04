@@ -173,6 +173,9 @@ public class GraphManagerWithStack extends UiTransition {
         fragmentStack.add(currentFragmentNode);
         currentFragmentNode = new RuntimeFragmentNode(new_tree);
         currentFragmentChanged = true;
+
+        if (CommonUtil.SCREENSHORT)
+            CommonUtil.getSnapshot(new_tree.activityName + "_" + new_tree.getTreeStructureHash());
     }
 
     int handleFragmentNotOver(Action action, ViewTree new_tree){
@@ -361,12 +364,29 @@ public class GraphManagerWithStack extends UiTransition {
             currentFragmentNode.xpath = CommonUtil.shuffle(currentFragmentNode.xpath_index, currentFragmentNode.clickable_list.size());
         }
         log("xpath index: " + currentFragmentNode.xpath +  " " + currentFragmentNode.xpath_index.size() + "/" + currentFragmentNode.clickable_list.size());
-        return currentFragmentNode.get_Clickable_list().get(currentFragmentNode.xpath);
+        String xpath = currentFragmentNode.get_Clickable_list().get(currentFragmentNode.xpath);
+
+//        Boolean has_webview_element = false;
+//        for(String item : currentFragmentNode.clickable_list){
+//            if (item.startsWith("@")){
+//                has_webview_element = true;
+//                break;
+//            }
+//        }
+//        while (has_webview_element && !xpath.startsWith("@")) {
+//            currentFragmentNode.xpath = CommonUtil.shuffle(currentFragmentNode.xpath_index, currentFragmentNode.clickable_list.size());
+//            xpath = currentFragmentNode.get_Clickable_list().get(currentFragmentNode.xpath);
+//        }
+
+        return xpath;
     }
 
     public int getXpathItem(ViewTree currentTree, String xpath){
         List<ViewNode> vl = ViewUtil.getViewByXpath(currentTree.root, xpath);
         int ser = CommonUtil.shuffle(currentFragmentNode.path_index, vl.size());
+        if (xpath.startsWith("@")){
+            log("text: " + vl.get(ser).getViewText());
+        }
         currentFragmentNode.path_index.add(ser);
         log("path index: " + ser + " " + currentFragmentNode.path_index.size() + "/" + vl.size());
         return ser;
