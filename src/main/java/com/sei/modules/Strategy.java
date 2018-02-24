@@ -67,8 +67,8 @@ public class Strategy extends Thread {
     }
 
     public Boolean restart(){
-        //ConnectUtil.force_stop(ConnectUtil.launch_pkg);
-        //ClientUtil.startApp(ConnectUtil.launch_pkg);
+        ConnectUtil.force_stop(ConnectUtil.launch_pkg);
+        ClientUtil.startApp(ConnectUtil.launch_pkg);
         if (!refresh()){
             log("restart app failure");
             return false;

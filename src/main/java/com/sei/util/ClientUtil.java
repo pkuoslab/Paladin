@@ -33,7 +33,7 @@ public class ClientUtil{
         if (ins.equals("start"))
             ConnectUtil.sendInstruction("record", "start;" + test_case);
         else if (ins.equals("stop"))
-            ConnectUtil.sendInstruction("record", "stop");
+            ConnectUtil.sendInstruction(ConnectUtil.launch_pkg, "record", "stop");
     }
 
     public static String execute_action(int action, String path, Boolean refresh){

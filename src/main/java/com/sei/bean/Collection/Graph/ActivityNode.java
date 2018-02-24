@@ -118,7 +118,7 @@ public class ActivityNode {
     }
 
     public FragmentNode find_Fragment_in_graph_beta(ViewTree vt){
-        log("tree xpath");
+        log("tree: " + vt.getTreeStructureHash());
 
         for (FragmentNode vc : fragments){
             if (vc.getStructure_hash() == vt.getTreeStructureHash()) {
@@ -131,7 +131,7 @@ public class ActivityNode {
 
             float match = calculate_similarity(vc.get_Clickable_list(), vt.getClickable_list());
             log("match: " + match);
-            if (match > 0.8)
+            if (match > 0.86)
                 return vc;
         }
 

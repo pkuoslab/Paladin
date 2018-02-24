@@ -22,9 +22,9 @@ public class CommonUtil {
     public static String ADB_PATH = "/home/mike/Android/Sdk/platform-tools/";
     public static int SCREEN_X = 0;
     public static String PASSWORD = "monkeymonkey";
-    public static Boolean SCREENSHORT = false;
+    public static Boolean SCREENSHORT = true;
     public static String SERIAL = "";
-    public static Random random = new Random(888); //trail : 259
+    public static Random random = new Random(259); //trail : 259
 
 
     public static void main(String[] argv){

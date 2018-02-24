@@ -101,7 +101,8 @@ public class FragmentStack {
 
             int tree_hash = tree.getTreeStructureHash();
             int target_hash = stack.get(i+1).getStructure_hash();
-            if (tree_hash == target_hash || tree.calc_similarity(stack.get(i+1).get_Clickable_list()) > CommonUtil.SIMILARITY)
+            if (tree_hash == target_hash || (tree.getActivityName().equals(stack.get(i+1).getActivity()) &&
+                    tree.calc_similarity(stack.get(i+1).get_Clickable_list()) > CommonUtil.SIMILARITY))
                 continue;
 
             int position = getPosition(tree);

@@ -48,6 +48,16 @@ public class ConnectUtil {
         return sendHttpGet(request);
     }
 
+    public static String sendInstruction(String pkg, String method, String args){
+        Map<String, String> map = new HashMap<>();
+        map.put("pkgName", pkg);
+        map.put("method", method);
+        map.put("arg", args);
+        String request = CommonUtil.HOST  + "/CMDManager?getMessage=" + SerializeUtil.toBase64(map);
+//        log("request: " + request);
+        return sendHttpGet(request);
+    }
+
     public static String sendOrderBeforeReadFile(String method, String args){
         String status = sendInstruction(method, args);
         String retStr = "";

@@ -212,8 +212,8 @@ public class Control extends NanoHTTPD{
             if (app.has("PASSWORD"))
                 CommonUtil.PASSWORD = app.getString("PASSWORD");
 
-            if (argv.length > 1)
-                ClientUtil.startApp(argv[1]);
+            if (argv.length > 0)
+                ClientUtil.startApp(argv[0]);
             else
                 ClientUtil.startApp(app.getString("PACKAGE"));
 
@@ -225,7 +225,9 @@ public class Control extends NanoHTTPD{
             if (app.getString("STRATEGY").equals("DFS")){
                 log("strategy: " + app.getString("STRATEGY"));
                 strategy = new DepthFirstTraversal(graphManager);
-                //strategy.start();
+//                if (argv.length > 1)
+//                    strategy.start();
+                strategy.start();
             }
         }catch (Exception e){
             e.printStackTrace();

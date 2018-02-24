@@ -179,11 +179,10 @@ public class DepthFirstTraversal extends Strategy {
         int response = ClientUtil.checkStatus(status);
         if (response == Status.SAME){
             ViewNode vn= ViewUtil.getViewByPath(currentTree.root, path);
-            if (vn != null && vn.getViewTag().contains("EditText")){
-                response = ClientUtil.checkStatus(ClientUtil.execute_action(Action.action_list.ENTERTEXT, "testing"));
-                action = new Action(path, Action.action_list.ENTERTEXT, "testing");
-            }else
-                action = null;
+//            if (vn != null && vn.getViewTag().contains("EditText")){
+//                response = ClientUtil.checkStatus(ClientUtil.execute_action(Action.action_list.ENTERTEXT, "testing"));
+//                action = new Action(path, Action.action_list.ENTERTEXT, "testing");
+//            }else
             action = null;
         }else
             action = new Action(path, Action.action_list.CLICK);

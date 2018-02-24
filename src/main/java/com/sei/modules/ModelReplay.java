@@ -10,6 +10,7 @@ import com.sei.util.ConnectUtil;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletionException;
 
 import static com.sei.util.CommonUtil.log;
 
@@ -34,6 +35,7 @@ public class ModelReplay extends Strategy {
     }
 
     public void run(){
+        ConnectUtil.current_pkg = ConnectUtil.launch_pkg;
         if (graphManager == null || graphManager.appGraph == null) return;
         if (!restart()) return;
 
