@@ -29,7 +29,7 @@ public class Strategy extends Thread {
         }
 
         if (currentTree == null) {
-            log("can not get tree, restart DroidWalker");
+            log("can not get tree, restart Paladin");
             start_droidwalker();
         }
 

@@ -34,6 +34,8 @@ public class ConnectUtil {
         int s = current_pkg.lastIndexOf(".");
         prefix = current_pkg.substring(0, s);
         if (is_upload) {
+            // 遗留设计，向展示图的服务器上传新节点信息
+            // 应在新版本中使用统一 RESTful接口
             uploadClient = new OkHttpClient();
         }
     }
@@ -133,17 +135,17 @@ public class ConnectUtil {
         return callback;
     }
 
-    public static void upload(ViewTree tree, AppGraph appGraph){
-        try {
-            RequestBody requestbody = new FormBody.Builder()
-                    .add("config", SerializeUtil.toBase64(appGraph))
-                    .add("current", SerializeUtil.toBase64(tree))
-                    .build();
-            asyncPostForm(requestbody, CommonUtil.SERVER + "/upload");
-        }catch(Exception e){
-            e.printStackTrace();
-        }
-    }
+//    public static void upload(ViewTree tree, AppGraph appGraph){
+//        try {
+//            RequestBody requestbody = new FormBody.Builder()
+//                    .add("config", SerializeUtil.toBase64(appGraph))
+//                    .add("current", SerializeUtil.toBase64(tree))
+//                    .build();
+//            asyncPostForm(requestbody, CommonUtil.SERVER + "/upload");
+//        }catch(Exception e){
+//            e.printStackTrace();
+//        }
+//    }
 
     public static void upload(String treeStr){
         //

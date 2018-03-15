@@ -131,7 +131,7 @@ public class ActivityNode {
 
             float match = calculate_similarity(vc.get_Clickable_list(), vt.getClickable_list());
             log("match: " + match);
-            if (match > 0.86)
+            if (match > CommonUtil.SIMILARITY)
                 return vc;
         }
 

@@ -35,8 +35,8 @@ public class Control extends NanoHTTPD{
         server.set_route_table();
         server.configure(argv);
         System.out.println("listening on: " + DEFAULT_PORT);
-        WebviewService webviewService = new WebviewService();
-        webviewService.start();
+        // WebviewService webviewService = new WebviewService();
+        // webviewService.start();
         ServerRunner.run(Control.class);
     }
 
@@ -203,7 +203,7 @@ public class Control extends NanoHTTPD{
 
             JSONObject device = (JSONObject) config_json.get("DEVICE");
             CommonUtil.HOST = "http://" + device.getString("IP") + ":6161";
-            if (device.has("SERIAL"))
+            if (device.has("SERIAL") && !device.getString("SERIAL").equals(""))
                 CommonUtil.SERIAL = "-s " + device.getString("SERIAL");
             JSONObject app = (JSONObject) config_json.get("APP");
             CommonUtil.ADB_PATH = config_json.getString("ADB_PATH");
@@ -212,10 +212,8 @@ public class Control extends NanoHTTPD{
             if (app.has("PASSWORD"))
                 CommonUtil.PASSWORD = app.getString("PASSWORD");
 
-            if (argv.length > 0)
-                ClientUtil.startApp(argv[0]);
-            else
-                ClientUtil.startApp(app.getString("PACKAGE"));
+
+            ClientUtil.startApp(app.getString("PACKAGE"));
 
             File graph = new File(dir + "./graph.json");
 
@@ -225,9 +223,8 @@ public class Control extends NanoHTTPD{
             if (app.getString("STRATEGY").equals("DFS")){
                 log("strategy: " + app.getString("STRATEGY"));
                 strategy = new DepthFirstTraversal(graphManager);
-//                if (argv.length > 1)
-//                    strategy.start();
-                strategy.start();
+                if (argv.length > 0 && argv[0].equals("-e"))
+                    strategy.start();
             }
         }catch (Exception e){
             e.printStackTrace();
