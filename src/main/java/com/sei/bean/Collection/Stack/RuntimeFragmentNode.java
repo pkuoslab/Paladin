@@ -23,6 +23,9 @@ public class RuntimeFragmentNode {
     public List<String> filter;
 
 
+    public String getSignature(){
+        return activity + "_" + structure_hash;
+    }
 
     public List<String> get_Clickable_list() {
         return clickable_list;

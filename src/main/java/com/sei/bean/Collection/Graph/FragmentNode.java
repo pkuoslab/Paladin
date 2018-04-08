@@ -2,7 +2,10 @@ package com.sei.bean.Collection.Graph;
 
 import com.alibaba.fastjson.annotation.JSONField;
 import com.sei.bean.View.Action;
+import com.sei.bean.View.ViewNode;
 import com.sei.bean.View.ViewTree;
+import com.sei.util.ViewUtil;
+
 import java.util.ArrayList;
 import java.util.List;
 import static com.sei.util.CommonUtil.log;
@@ -25,6 +28,8 @@ public class FragmentNode {
     public List<String> unclick_list;
     public List<Integer> xpath_index;
     public List<Integer> path_index;
+    public List<String> path_list;
+    public List<String> edit_fields;
 
     public FragmentNode(){
         traverse_over = false;
@@ -34,6 +39,9 @@ public class FragmentNode {
         click_list = new ArrayList<>();
         xpath_index = new ArrayList<>();
         path_index = new ArrayList<>();
+
+        path_list = new ArrayList<>();
+        edit_fields = new ArrayList<>();
         color = "white";
     }
 
@@ -46,6 +54,16 @@ public class FragmentNode {
     public FragmentNode(ViewTree tree){
         this(tree.getTreeStructureHash(), tree.getClickable_list());
         this.activity = tree.getActivityName();
+        for(String xpath: tree.getClickable_list()){
+            List<ViewNode> vl = ViewUtil.getViewByXpath(tree.root, xpath);
+            for(int i=0; i < vl.size(); i++) {
+                ViewNode vn = vl.get(i);
+                if (vn != null && i < 6)
+                    path_list.add(xpath + "#" + i);
+                if (vn != null && vn.getViewTag().contains("EditText"))
+                    edit_fields.add(xpath + "#" + i);
+            }
+        }
     }
 
     public FragmentNode(int hash, List<String> click_list){
@@ -176,14 +194,17 @@ public class FragmentNode {
     }
 
     public double calc_similarity(FragmentNode node){
+        return calc_similarity(node.get_Clickable_list());
+    }
+
+    public double calc_similarity(List<String> click_list2){
         float match = 0f;
         for (String s : click_list){
-            if (node.get_Clickable_list().contains(s)) {
+            if (click_list2.contains(s)) {
                 match += 1;
             }
         }
-        int tot = (click_list.size() + node.get_Clickable_list().size());
-        log(node.getStructure_hash() + " match : " + 2 * match + "size: " + tot + "rate: " + 2 * match / tot);
+        int tot = (click_list.size() + click_list2.size());
         return 2 * match / tot;
     }
 }

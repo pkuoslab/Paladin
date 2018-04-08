@@ -60,36 +60,32 @@ public class ActivityNode {
     }
 
     public FragmentNode find_Fragment(ViewTree vt){
-//        for (FragmentNode vc : fragments){
-//            if (vc.getStructure_hash() == vt.getTreeStructureHash()) {
-//                return vc;
-//            }
-//        }
-//
-//        for (FragmentNode vc : fragments){
-//            float match = 0f;
-//            for (String s : vc.get_Clickable_list()){
-//                if (vt.get_Clickabke_list().contains(s)) {
-////                    Log.i("liuyi", s);
-//                    match += 1;
-//                }
-//            }
-//            int tot = (vc.get_Clickable_list().size() + vt.get_Clickabke_list().size());
-//            log(vc.getStructure_hash() + " match : " + 2 * match + "size: " + tot + "rate: " + 2 * match / tot);
-//            if (2 * match / tot > 0.85){
-////                FragmentNode fc = new FragmentNode(vt.treeStructureHash, vt);
-//                FragmentNode fc = new FragmentNode();
-//                fc.setViewtree(vt);
-//                fc.unclick_list = vc.unclick_list;
-//                fc.interpaths = vc.interpaths;
-//                fc.intrapaths = vc.intrapaths;
-//                fragments.add(fc);
-//                return fc;
-//            }
-//
-//        }
-//        return null;
-        return find_Fragment(vt.getTreeStructureHash(), vt.getClickable_list());
+        for (FragmentNode vc : fragments){
+            if(vc.getStructure_hash() == vt.getTreeStructureHash())
+                return vc;
+        }
+
+        for (FragmentNode vc : fragments){
+            float match = 0f;
+            for (String s : vt.getClickable_list()){
+                if (vc.get_Clickable_list().contains(s))
+                    match += 1;
+            }
+
+            int tot = vc.get_Clickable_list().size() + vt.getClickable_list().size();
+            if (2 * match / tot > CommonUtil.SIMILARITY){
+                FragmentNode fc = new FragmentNode(vt);
+                //深拷贝点击过的节点
+                for(int i : vc.path_index)
+                    fc.path_index.add(i);
+                fc.interpaths = vc.interpaths;
+                fc.intrapaths = vc.intrapaths;
+                fc.menuClicked = vc.menuClicked;
+                fragments.add(fc);
+                return fc;
+            }
+        }
+        return null;
     }
 
     public FragmentNode find_Fragment_in_graph(ViewTree vt){

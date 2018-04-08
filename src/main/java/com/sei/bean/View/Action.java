@@ -66,6 +66,7 @@ public class Action implements Serializable{
     public Action(String path, int action) {
         this.path = path;
         this.action = action;
+        this.content = "test";
         list = false;
         scroll = 0;
     }

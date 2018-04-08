@@ -1,5 +1,6 @@
 package com.sei.server;
 
+import com.sei.agent.Device;
 import com.sei.bean.Collection.Graph.GraphManager;
 import com.sei.modules.DepthFirstTraversal;
 import com.sei.modules.ModelReplay;
@@ -7,12 +8,11 @@ import com.sei.modules.Strategy;
 import com.sei.modules.plugin.WebviewService;
 import com.sei.modules.testStrategy;
 import com.sei.server.component.Handler;
-import com.sei.util.ClientUtil;
-import com.sei.util.CommonUtil;
-import com.sei.util.ConnectUtil;
-import com.sei.util.SerializeUtil;
+import com.sei.server.component.Scheduler;
+import com.sei.util.*;
 import fi.iki.elonen.NanoHTTPD;
 import fi.iki.elonen.util.ServerRunner;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import javax.naming.ldap.ControlFactory;
@@ -27,12 +27,14 @@ public class Control extends NanoHTTPD{
     Strategy strategy;
     public static HashMap<String, Handler> route_table = new HashMap<>();
     public static Boolean finished = false;
+    public static Scheduler scheduler;
 
 
     public static void main(String[] argv) {
         setListeningPort();
         Control server = new Control();
         server.set_route_table();
+        scheduler = new Scheduler();
         server.configure(argv);
         System.out.println("listening on: " + DEFAULT_PORT);
         // WebviewService webviewService = new WebviewService();
@@ -55,50 +57,14 @@ public class Control extends NanoHTTPD{
             }
         });
 
-        register("/finish", new Handler() {
-            @Override
-            public Response onRequest(IHTTPSession session) {
-                if (finished)
-                    return newFixedLengthResponse("yes");
-                else
-                    return newFixedLengthResponse("no");
-            }
-        });
-
-        register("/set", new Handler() {
-            @Override
-            public Response onRequest(IHTTPSession session) {
-                Map<String, List<String>> query = session.getParameters();
-                String packageName = query.get("package").get(0);
-                ClientUtil.startApp(packageName);
-                return newFixedLengthResponse("set package: " + packageName);
-            }
-        });
-
-        register("/start", new Handler() {
-            @Override
-            public Response onRequest(IHTTPSession session) {
-                Map<String, List<String>> query = session.getParameters();
-                startTestApplication(query.get("strategy").get(0));
-                return newFixedLengthResponse("start success");
-            }
-        });
-
-        register("/stop", new Handler() {
-            @Override
-            public Response onRequest(IHTTPSession session) {
-                stopTestApplication();
-                return newFixedLengthResponse("stop success");
-            }
-        });
 
         register("/list", new Handler() {
             @Override
             public Response onRequest(IHTTPSession session) {
                 JSONObject jo = new JSONObject();
                 try {
-                    jo.put("nodes", graphManager.getAllNodesTag());
-                    jo.put("activity", graphManager.getActivitySize());
+                    jo.put("nodes", scheduler.graphAdjustor.getAllNodesTag());
+                    jo.put("activity", scheduler.graphAdjustor.appGraph.getActivities().size());
                 }catch (Exception e){
                     e.printStackTrace();
                 }
@@ -106,40 +72,34 @@ public class Control extends NanoHTTPD{
             }
         });
 
-        register("/replay", new Handler() {
-            @Override
-            public Response onRequest(IHTTPSession session) {
-                // parameter format : /replay?nodes=xxx_xxx&xxx_xxx
-                String query = session.getQueryParameterString().substring(6);
-                //log(query.toString());
-                if (query.equals("all")) {
-                    strategy = new ModelReplay(graphManager);
-                    strategy.start();
-                }else{
-                    List<String> route_list = Arrays.asList(query.split("&"));
-                    strategy = new ModelReplay(graphManager, route_list);
-                    strategy.start();
-                }
-                return newFixedLengthResponse("replay start");
-            }
-        });
+//        register("/replay", new Handler() {
+//            @Override
+//            public Response onRequest(IHTTPSession session) {
+//                // parameter format : /replay?nodes=xxx_xxx&xxx_xxx
+//                String query = session.getQueryParameterString().substring(6);
+//                //log(query.toString());
+//                if (query.equals("all")) {
+//                    strategy = new ModelReplay(graphManager);
+//                    strategy.start();
+//                }else{
+//                    List<String> route_list = Arrays.asList(query.split("&"));
+//                    strategy = new ModelReplay(graphManager, route_list);
+//                    strategy.start();
+//                }
+//                return newFixedLengthResponse("replay start");
+//            }
+//        });
 
         register("/save", new Handler() {
             @Override
             public Response onRequest(IHTTPSession session) {
                 log("save graph");
-                graphManager.save();
+                scheduler.graphAdjustor.save();
+                scheduler.save();
                 return newFixedLengthResponse("save");
             }
         });
 
-        register("/current", new Handler() {
-            @Override
-            public Response onRequest(IHTTPSession session) {
-                String current = graphManager.getFragmentNode().getSignature();
-                return newFixedLengthResponse(current);
-            }
-        });
     }
 
     @Override
@@ -200,32 +160,32 @@ public class Control extends NanoHTTPD{
         try {
             String content = CommonUtil.readFromFile(dir + "config.json");
             JSONObject config_json = new JSONObject(content);
-
-            JSONObject device = (JSONObject) config_json.get("DEVICE");
-            CommonUtil.HOST = "http://" + device.getString("IP") + ":6161";
-            if (device.has("SERIAL") && !device.getString("SERIAL").equals(""))
-                CommonUtil.SERIAL = "-s " + device.getString("SERIAL");
-            JSONObject app = (JSONObject) config_json.get("APP");
-            CommonUtil.ADB_PATH = config_json.getString("ADB_PATH");
-            if (device.has("SCREEN_WIDTH"))
-                CommonUtil.SCREEN_X = device.getInt("SCREEN_WIDTH");
-            if (app.has("PASSWORD"))
-                CommonUtil.PASSWORD = app.getString("PASSWORD");
-
-
-            ClientUtil.startApp(app.getString("PACKAGE"));
-
-            File graph = new File(dir + "./graph.json");
-
-            if (graph.exists())
-                graphManager.load();
-
-            if (app.getString("STRATEGY").equals("DFS")){
-                log("strategy: " + app.getString("STRATEGY"));
-                strategy = new DepthFirstTraversal(graphManager);
-                if (argv.length > 0 && argv[0].equals("-e"))
-                    strategy.start();
+            if (config_json.has("ADB_PATH")){
+                log("ADB: " + config_json.getString("ADB_PATH"));
+                CommonUtil.ADB_PATH = config_json.getString("ADB_PATH");
             }
+            String pkg = config_json.getString("PACKAGE");
+            ConnectUtil.setUp(pkg);
+            JSONArray device_config = config_json.getJSONArray("DEVICES");
+            List<Device> devices = new ArrayList<>();
+
+            for(int i=0; i < device_config.length(); i++){
+                JSONObject c = device_config.getJSONObject(i);
+                String ip = "http://" + c.getString("IP");
+                String serial = c.getString("SERIAL");
+                String pass = "";
+                if (c.has("PASSWORD")) pass = c.getString("PASSWORD");
+
+                if (ip.contains("127.0.0.1"))
+                    ShellUtils2.execCommand("adb -s " + serial + " forward tcp:" + c.getInt("PORT") + " tcp:6161");
+                Device d = new Device(ip + ":" + c.getInt("PORT"), c.getInt("PORT"), serial, pkg, pass);
+                devices.add(d);
+                scheduler.bind(d);
+            }
+
+            for(Device d: devices)
+                d.start();
+
         }catch (Exception e){
             e.printStackTrace();
         }

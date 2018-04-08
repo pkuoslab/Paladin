@@ -1,5 +1,6 @@
 package com.sei.bean.Collection.Stack;
 
+import com.sei.agent.Device;
 import com.sei.bean.Collection.Graph.GraphManager;
 import com.sei.bean.View.Action;
 import com.sei.bean.View.ViewTree;
@@ -29,6 +30,10 @@ public class FragmentStack {
         return null;
     }
 
+    public RuntimeFragmentNode get(int idx){
+        return stack.get(idx);
+    }
+
     public void add(RuntimeFragmentNode node){
         stack.add(node);
     }
@@ -44,21 +49,24 @@ public class FragmentStack {
     }
 
     public int getPosition(ViewTree tree){
+        return matchPosition(tree, CommonUtil.SIMILARITY);
+    }
+
+    public int matchPosition(ViewTree tree, double sm){
         for (int i=stack.size() - 1; i >=0; i--){
             if (stack.get(i).getStructure_hash() == tree.getTreeStructureHash())
                 return i;
         }
+
         for (int i=stack.size() - 1; i >= 0; i--){
             String act = stack.get(i).activity;
             if (!tree.getActivityName().equals(act))
                 continue;
             double s = tree.calc_similarity(stack.get(i).get_Clickable_list());
-            //double s = 0.5;
-            if (s > CommonUtil.SIMILARITY) {
-                log("similarity: " + s + " with " + stack.get(i).getStructure_hash() + " position: " + i);
+            if (s > sm)
                 return i;
-            }
         }
+
         return -1;
     }
 
@@ -135,6 +143,71 @@ public class FragmentStack {
         return GraphManagerWithStack.STACK_STATUS.RECOVER;
     }
 
+    public int recover(Device d, int start){
+        int response = Device.UI.OUT;
+
+        int limits = 0;
+        for(int i=start; i < stack.size()-1; i++){
+            RuntimeFragmentNode rfn = stack.get(i);
+            Action action = rfn.getAction();
+            if (action.getAction() == Action.action_list.MENU)
+                ClientUtil.execute_action(d, action.getAction());
+            else if(action.getAction() == Action.action_list.ENTERTEXT) {
+                ClientUtil.execute_action(d, Action.action_list.CLICK, action.getPath());
+                ClientUtil.execute_action(d, Action.action_list.ENTERTEXT, action.getContent());
+            }else
+                ClientUtil.execute_action(d, action.getAction(), action.getPath());
+
+//            if (response == Device.UI.OUT) {
+//                d.log("out");
+//                return Device.UI.OUT;
+//            }
+
+            ViewTree tree = ClientUtil.getCurrentTree(d);
+            if (tree == null) {
+                CommonUtil.sleep(2000);
+                tree = ClientUtil.getCurrentTree(d);
+                if (tree == null) {
+                    d.log("out");
+                    return Device.UI.OUT;
+                }
+            }
+
+            int tree_hash = tree.getTreeStructureHash();
+            int target_hash = stack.get(i+1).getStructure_hash();
+            int position = getPosition(tree);
+
+            if (position == i+1)
+                continue;
+
+            if (position == i) {
+                int c = i+1;
+                d.log("can not recover, cut above " + c + "/" + stack.size());
+                for(int j=stack.size()-1; j >= c; j--)
+                    stack.remove(j);
+                return Device.UI.SAME;
+            }else if (position != -1 && position != i+1){
+                if (limits >= 3){
+                    int c = position + 1;
+                    d.log("continuously back to position " + position + " cut above " + c + "/" + stack.size());
+                    for(int j=stack.size()-1; j >= c; j--)
+                        stack.remove(j);
+                }
+                limits += 1;
+                i = position-1;
+            }else if (position == -1){
+                int c = i + 1;
+                d.log("recover to node not in stack, cut above " + c + "/" + stack.size());
+                for(int j=stack.size()-1; j >= c; j--)
+                    stack.remove(j);
+                return Device.UI.NEW;
+            }
+        }
+        d.log("recover successfully");
+        return Device.UI.SAME;
+
+    }
+
     public int recover(){
         ViewTree tree = ClientUtil.getCurrentTree();
         int position = getPosition(tree);
@@ -162,4 +235,10 @@ public class FragmentStack {
             }
         }
     }
+
+    public void clear(){
+        for(int i=stack.size()-1; i >=0; i--)
+            stack.remove(i);
+    }
+
 }

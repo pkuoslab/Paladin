@@ -1,5 +1,7 @@
 package com.sei.util;
 
+import com.sei.agent.Device;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -17,14 +19,14 @@ public class CommonUtil {
     //public static String SERVER = "http://172.20.66.202:5600";
     public static int DEFAULT_PORT = 5700;
     public static int SLEEPTIME = 1000;
-    public static double SIMILARITY = 0.85;
+    public static double SIMILARITY = 0.9;
     public static String DIR = "";
     public static String ADB_PATH = "/home/mike/Android/Sdk/platform-tools/";
     public static int SCREEN_X = 0;
     public static String PASSWORD = "monkeymonkey";
     public static Boolean SCREENSHORT = true;
     public static String SERIAL = "";
-    public static Random random = new Random(1666); //trail : 259
+    public static Random random = new Random(1011); //trail : 259
 
 
     public static void main(String[] argv){
@@ -85,5 +87,17 @@ public class CommonUtil {
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
         String S = new SimpleDateFormat("MM-dd HH:mm:ss").format(timestamp);
         System.out.println(S + "\t" + info);
+    }
+
+    public static void start_paladin(Device d){
+        ClientUtil.stopApp(d, "ias.deepsearch.com.helper");
+        ClientUtil.stopApp(d, ConnectUtil.launch_pkg);
+        CommonUtil.sleep(2000);
+        ClientUtil.startApp(d, "ias.deepsearch.com.helper");
+        ShellUtils2.execCommand(CommonUtil.ADB_PATH + "adb -s " + d.serial + " shell input keyevent KEYCODE_HOME");
+        CommonUtil.sleep(2000);
+        ClientUtil.startApp(d, ConnectUtil.launch_pkg);
+        if (d.ip.contains("127.0.0.1"))
+            ShellUtils2.execCommand(CommonUtil.ADB_PATH + "adb -s " + d.serial + " forward tcp:" + d.port + " tcp:6161");
     }
 }

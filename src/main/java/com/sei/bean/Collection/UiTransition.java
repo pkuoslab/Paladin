@@ -16,7 +16,7 @@ public abstract class UiTransition {
     }
     public void registerAllHandlers(){}
     public interface UI{
-        int NEW_ACT = 0;
+        int NEW_ACT = -3;
         int OLD_ACT_NEW_FRG = 1;
         int OLD_ACT_OLD_FRG = -1;
         int NEW_FRG = -2;

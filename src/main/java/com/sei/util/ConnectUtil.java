@@ -1,5 +1,6 @@
 package com.sei.util;
 
+import com.sei.agent.Device;
 import com.sei.bean.Collection.Graph.AppGraph;
 import com.sei.bean.View.ViewTree;
 import okhttp3.*;
@@ -28,11 +29,11 @@ public class ConnectUtil {
     public static Boolean is_upload = false;
 
     public static void setUp(String pkgName){
-        log("testing " + pkgName);
         current_pkg = pkgName;
         launch_pkg = pkgName;
         int s = current_pkg.lastIndexOf(".");
         prefix = current_pkg.substring(0, s);
+        log("prefix: " + prefix);
         if (is_upload) {
             // 遗留设计，向展示图的服务器上传新节点信息
             // 应在新版本中使用统一 RESTful接口
@@ -41,13 +42,8 @@ public class ConnectUtil {
     }
 
     public static String sendInstruction(String method, String args){
-        Map<String, String> map = new HashMap<>();
-        map.put("pkgName", current_pkg);
-        map.put("method", method);
-        map.put("arg", args);
-        String request = CommonUtil.HOST  + "/CMDManager?getMessage=" + SerializeUtil.toBase64(map);
-//        log("request: " + request);
-        return sendHttpGet(request);
+        String pkg = current_pkg;
+        return sendInstruction(pkg, method, args);
     }
 
     public static String sendInstruction(String pkg, String method, String args){
@@ -59,6 +55,7 @@ public class ConnectUtil {
 //        log("request: " + request);
         return sendHttpGet(request);
     }
+
 
     public static String sendOrderBeforeReadFile(String method, String args){
         String status = sendInstruction(method, args);
@@ -80,12 +77,21 @@ public class ConnectUtil {
         return retStr;
     }
 
+    public static String sendInstruction(Device d, String method, String args){
+        Map<String, String> map = new HashMap<>();
+        map.put("pkgName", d.current_pkg);
+        map.put("method", method);
+        map.put("arg", args);
+        String rq = d.ip + "/CMDManager?getMessage=" + SerializeUtil.toBase64(map);
+        return sendHttpGet(rq);
+    }
+
     public static String sendHttpGet(String str){
         try{
             String request = str;
             URL url = new URL(request);
             URLConnection connection = url.openConnection();
-            connection.setReadTimeout(1000 * 1000);
+            connection.setReadTimeout(10 * 1000);
             InputStream input = connection.getInputStream();
             Scanner sc = new Scanner(input);
 
@@ -97,7 +103,7 @@ public class ConnectUtil {
             return sb.toString();
 
         }catch (Exception e){
-            e.printStackTrace();
+            //e.printStackTrace();
             return e.getMessage();
         }
     }

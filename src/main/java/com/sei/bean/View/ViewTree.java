@@ -56,15 +56,15 @@ public class ViewTree implements Serializable {
         this.totalViewCount = totalViewCount;
     }
 
-    public List<String> clickable_list;
+    public Boolean existAction(String path){
+        for(String c : clickable_list)
+            if (path.contains(c))
+                return true;
 
-    public void display_click() {
-        List<String> click_list = getClickable_list();
-        Collections.sort(click_list);
-        for (String s : click_list) {
-            log(s);
-        }
+        return false;
     }
+
+    public List<String> clickable_list;
 
     public void setClickable_list(List<String> clickable_list) {
         this.clickable_list = clickable_list;
@@ -144,43 +144,16 @@ public class ViewTree implements Serializable {
 
     public double calc_similarity(List<String> clickable_list2){
         float match = 0f;
-
-        //log("tree xpath:");
-        for (String s1 : clickable_list){
-            //log("*" + s);
-            String[] slist1 = s1.split("/");
-            for (String s2 : clickable_list2){
-                float xmatch = 0f;
-                String[] slist2 = s2.split("/");
-                if (!slist1[slist1.length-1].equals(slist2[slist2.length-1]))
-                    continue;
-
-                for (int a=slist1.length-1, b=slist2.length-1; a >=0 && b >=0;){
-                    if (slist1[a].equals(slist2[b])) {
-                        xmatch++;
-                        --a;
-                        --b;
-                    }else if (slist1.length < slist2.length)
-                        --b;
-                    else
-                        --a;
-                }
-                float rate = 2 * xmatch / (slist1.length + slist2.length);
-//                log("xpath1: " + s1);
-//                log("xpath2: " + s2);
-//                log("rate: " + rate);
-                if (rate > 0.7) {
-                    match += 1;
-                    break;
-                }
-            }
+        for(String s : clickable_list2){
+            if (clickable_list.contains(s))
+                match += 1;
         }
-        int tot = (clickable_list.size() + clickable_list2.size());
-        float sm = 2 * match / tot;
-        log("rate: " + sm);
 
+        int tot = clickable_list2.size() + clickable_list.size();
         return 2 * match / tot;
     }
+
+
 
     public String matchPath(String path){
         int idx = path.indexOf("#");
