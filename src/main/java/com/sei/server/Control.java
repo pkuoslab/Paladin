@@ -1,12 +1,6 @@
 package com.sei.server;
 
 import com.sei.agent.Device;
-import com.sei.bean.Collection.Graph.GraphManager;
-import com.sei.modules.DepthFirstTraversal;
-import com.sei.modules.ModelReplay;
-import com.sei.modules.Strategy;
-import com.sei.modules.plugin.WebviewService;
-import com.sei.modules.testStrategy;
 import com.sei.server.component.Handler;
 import com.sei.server.component.Scheduler;
 import com.sei.util.*;
@@ -15,7 +9,6 @@ import fi.iki.elonen.util.ServerRunner;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import javax.naming.ldap.ControlFactory;
 import java.io.File;
 import java.util.*;
 
@@ -23,10 +16,7 @@ import static com.sei.util.CommonUtil.DEFAULT_PORT;
 import static com.sei.util.CommonUtil.log;
 
 public class Control extends NanoHTTPD{
-    GraphManager graphManager = new GraphManager();
-    Strategy strategy;
     public static HashMap<String, Handler> route_table = new HashMap<>();
-    public static Boolean finished = false;
     public static Scheduler scheduler;
 
 
@@ -113,31 +103,6 @@ public class Control extends NanoHTTPD{
         }
     }
 
-    void startTestApplication(String s) {
-        log("start test ");
-        CommonUtil.sleep(2000);
-        try {
-            if (s.equals("DFS")){
-                log("strategy: DFS");
-                CommonUtil.random = new Random(250);
-                graphManager = new GraphManager();
-                strategy = new DepthFirstTraversal(graphManager);
-                strategy.start();
-            }
-        }catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    void stopTestApplication() {
-
-        log("stop test");
-        try {
-            strategy.EXIT = true;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
     public static void setListeningPort(){
         try {
             //String dir = "/home/mike/togithub/droidwalker/droidwalker/out/artifacts/droidwalker_jar/";

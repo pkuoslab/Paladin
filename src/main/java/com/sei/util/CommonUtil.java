@@ -16,13 +16,10 @@ import java.util.concurrent.TimeUnit;
  */
 public class CommonUtil {
     public static String HOST = "http://127.0.0.1:6161";
-    //public static String SERVER = "http://172.20.66.202:5600";
     public static int DEFAULT_PORT = 5700;
-    public static int SLEEPTIME = 1000;
     public static double SIMILARITY = 0.9;
     public static String DIR = "";
     public static String ADB_PATH = "/home/mike/Android/Sdk/platform-tools/";
-    public static int SCREEN_X = 0;
     public static String PASSWORD = "monkeymonkey";
     public static Boolean SCREENSHORT = true;
     public static String SERIAL = "";

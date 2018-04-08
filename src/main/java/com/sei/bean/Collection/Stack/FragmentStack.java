@@ -87,62 +87,6 @@ public class FragmentStack {
         return null;
     }
 
-    public int recover(int start){
-        String status = "";
-        ViewTree tree;
-        int limits = 0;
-        for(int i=start; i < stack.size()-1; i++){
-            RuntimeFragmentNode rfn = stack.get(i);
-            Action action = rfn.getAction();
-            if (action.getAction() == Action.action_list.MENU)
-                status = ClientUtil.execute_action(action.getAction());
-            else if(action.getAction() == Action.action_list.ENTERTEXT) {
-                ClientUtil.execute_action(Action.action_list.CLICK, action.getPath());
-                status = ClientUtil.execute_action(Action.action_list.ENTERTEXT, action.getContent());
-            }else
-                status = ClientUtil.execute_action(action.getAction(), action.getPath());
-            ClientUtil.checkStatus(status);
-            tree = ClientUtil.getCurrentTree();
-            if (tree == null){
-                return GraphManagerWithStack.STACK_STATUS.OUT;
-            }
-
-            int tree_hash = tree.getTreeStructureHash();
-            int target_hash = stack.get(i+1).getStructure_hash();
-            if (tree_hash == target_hash || (tree.getActivityName().equals(stack.get(i+1).getActivity()) &&
-                    tree.calc_similarity(stack.get(i+1).get_Clickable_list()) > CommonUtil.SIMILARITY))
-                continue;
-
-            int position = getPosition(tree);
-            if (position == i) {
-                int c = i+1;
-                log("can not recover, cut above " + c + "/" + stack.size());
-                for(int j=stack.size()-1; j >= c; j--)
-                    stack.remove(j);
-                return GraphManagerWithStack.STACK_STATUS.STACK;
-            }else if (position != -1 && position != i+1){
-                if (limits >= 3){
-                    int c = position + 1;
-                    log("continuously back to position " + position + " cut above " + c + "/" + stack.size());
-                    for(int j=stack.size()-1; j >= c; j--)
-                        stack.remove(j);
-                    return GraphManagerWithStack.STACK_STATUS.STACK;
-                }
-                limits += 1;
-                i = position-1;
-            }else if (position == -1){
-                int c = i + 1;
-                log("recover to node not in stack, cut above " + c + "/" + stack.size());
-                for(int j=stack.size()-1; j >= c; j--)
-                    stack.remove(j);
-                //RuntimeFragmentNode node = new RuntimeFragmentNode(tree);
-                //stack.add(node);
-                return GraphManagerWithStack.STACK_STATUS.NOT;
-            }
-        }
-        return GraphManagerWithStack.STACK_STATUS.RECOVER;
-    }
-
     public int recover(Device d, int start){
         int response = Device.UI.OUT;
 
@@ -206,34 +150,6 @@ public class FragmentStack {
         d.log("recover successfully");
         return Device.UI.SAME;
 
-    }
-
-    public int recover(){
-        ViewTree tree = ClientUtil.getCurrentTree();
-        int position = getPosition(tree);
-        if (position != -1) {
-            log("current position: " + position + " /" + stack.size());
-            return recover(position);
-        }else{
-            CommonUtil.sleep(5000);
-            ClientUtil.refreshUI();
-            tree = ClientUtil.getCurrentTree();
-            position = getPosition(tree);
-            if (position == -1) {
-                log("current tree: " + tree.getTreeStructureHash());
-                log("current stack: ");
-                for(RuntimeFragmentNode frg: stack){
-                    log("hash: " + frg.getStructure_hash() + " " + tree.calc_similarity(frg.get_Clickable_list()));
-                }
-                RuntimeFragmentNode rfn = new RuntimeFragmentNode(tree);
-                stack = new LinkedList<>();
-                stack.add(rfn);
-                return GraphManagerWithStack.STACK_STATUS.CLEAN;
-            }else{
-                log("current position: " + position + " /" + stack.size());
-                return recover(position);
-            }
-        }
     }
 
     public void clear(){
