@@ -52,7 +52,6 @@ public class GraphManager extends UiTransition{
             appGraph.setPackage_name(ConnectUtil.current_pkg);
             activityNode = new ActivityNode();
             activityNode.setActivity_name(currentTree.getActivityName());
-            activityNode.setSer_intent(ClientUtil.getSerIntent());
             appGraph.appendActivity(activityNode);
             fragmentNode = new FragmentNode(currentTree);
             activityNode.appendFragment(fragmentNode);
@@ -70,8 +69,6 @@ public class GraphManager extends UiTransition{
             public int adjust(Action action, ViewTree currentTree, ViewTree new_tree) {
                 fragmentNode.addInterpath(action);
                 activityNode = new ActivityNode(new_tree.getActivityName());
-                String ser_intent = ClientUtil.getSerIntent();
-                activityNode.setSer_intent(ser_intent);
                 appGraph.appendActivity(activityNode);
                 fragmentNode = new FragmentNode(new_tree);
                 activityNode.appendFragment(fragmentNode);
@@ -119,12 +116,6 @@ public class GraphManager extends UiTransition{
             }
         });
 
-        registerHandler(UI.LOGIN, new Handler() {
-            @Override
-            public int adjust(Action action, ViewTree currentTree, ViewTree new_tree) {
-                return handleLogin(new_tree);
-            }
-        });
     }
 
 
@@ -188,49 +179,6 @@ public class GraphManager extends UiTransition{
             }else{
                 log("old fragment " + new_tree.getTreeStructureHash());
                 return UI.OLD_FRG;
-            }
-        }
-    }
-
-    public int handleLogin(ViewTree new_tree){
-        List<ViewNode> nodes = new_tree.get_clickable_nodes();
-        for(ViewNode node : nodes){
-            if (node.getViewTag().contains("EditText")){
-                int x = node.getX() + node.getWidth() / 2;
-                int y = node.getY() + node.getHeight() / 2;
-                ClientUtil.click(x, y);
-                break;
-            }
-        }
-
-        //ClientUtil.execute_action(Action.action_list.ENTERTEXT, CommonUtil.PASSWORD);
-        ShellUtils2.execCommand(CommonUtil.ADB_PATH + "adb " + CommonUtil.SERIAL  +" shell input text " + CommonUtil.PASSWORD);
-        for (ViewNode node : nodes){
-            if (node.getViewText() != null && node.getViewText().contains("登录")){
-                log("log in");
-                int x = node.getX() + node.getWidth() / 2;
-                int y = node.getY() + node.getHeight() / 2;
-                ClientUtil.click(x, y);
-                break;
-            }
-        }
-
-        String login_activity = new_tree.getActivityName();
-        CommonUtil.sleep(5000);
-        String current_activity = ClientUtil.getCurrentActivity();
-        if (!current_activity.equals(login_activity)){
-            log("log in successfully");
-            return REFRESH.YES;
-        }else{
-            CommonUtil.sleep(5000);
-            current_activity = ClientUtil.getCurrentActivity();
-            if (!current_activity.equals(login_activity)) {
-                log("log in successfully");
-                return REFRESH.YES;
-            }else {
-                log("log fail");
-                log_fail = true;
-                return 0;
             }
         }
     }

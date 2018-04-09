@@ -18,18 +18,6 @@ import static com.sei.util.CommonUtil.log;
 
 public class ClientUtil{
 
-    public interface Status{
-        int NEW = 0;
-        int PIDCHANGE = -1;
-        int OUT = -3;
-        int SAME = 2;
-    }
-
-    public static void main(String[] argv){
-        //log("foreground app: " + getForegroundPkg());
-        return;
-    }
-
     public static void record(String ins, int test_case){
 //        if (ins.equals("start"))
 //            ConnectUtil.sendInstruction("record", "start;" + test_case);

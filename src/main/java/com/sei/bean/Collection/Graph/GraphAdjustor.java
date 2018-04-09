@@ -153,6 +153,13 @@ public class GraphAdjustor extends UiTransition{
         try{
             String graphStr = CommonUtil.readFromFile("graph.json");
             appGraph = (AppGraph) SerializeUtil.toObject(graphStr, AppGraph.class);
+            for(ActivityNode actNode: appGraph.getActivities()){
+                for(FragmentNode frgNode: actNode.getFragments()) {
+                    frgNode.clicked_edges = new ArrayList<>();
+                    frgNode.intrapath_index = new ArrayList<>();
+                    frgNode.interpath_index = new ArrayList<>();
+                }
+            }
         }catch (Exception e){
             e.printStackTrace();
         }
@@ -199,6 +206,23 @@ public class GraphAdjustor extends UiTransition{
         }else
             currentNode.setTraverse_over(true);
         return action;
+    }
+
+    public Action getEdgeAction(ViewTree currentTree){
+        FragmentNode currentNode = locate(currentTree);
+        if (currentNode.interpath_index.size() < currentNode.interpaths.size()){
+            int ser = CommonUtil.shuffle(currentNode.interpath_index, currentNode.interpaths.size());
+            currentNode.interpath_index.add(ser);
+            return currentNode.interpaths.get(ser);
+        }
+
+        if (currentNode.intrapath_index.size() < currentNode.intrapaths.size()){
+            int ser = CommonUtil.shuffle(currentNode.intrapath_index, currentNode.intrapaths.size());
+            currentNode.intrapath_index.add(ser);
+            return currentNode.intrapaths.get(ser);
+        }
+
+        return null;
     }
 
     public Boolean hasAction(String activity, int hash){

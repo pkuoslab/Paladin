@@ -97,4 +97,15 @@ public class CommonUtil {
         if (d.ip.contains("127.0.0.1"))
             ShellUtils2.execCommand(CommonUtil.ADB_PATH + "adb -s " + d.serial + " forward tcp:" + d.port + " tcp:6161");
     }
+
+    public static double calc_similarity(List<String> s1, List<String> s2){
+        float match = 0f;
+        for(String s : s1){
+            if (s2.contains(s))
+                match += 1;
+        }
+
+        int tot = s1.size() + s2.size();
+        return 2 * match / tot;
+    }
 }

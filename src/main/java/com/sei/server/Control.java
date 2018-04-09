@@ -24,7 +24,11 @@ public class Control extends NanoHTTPD{
         setListeningPort();
         Control server = new Control();
         server.set_route_table();
-        scheduler = new Scheduler();
+        if (argv.length > 0)
+            scheduler = new Scheduler(argv[0]);
+        else
+            scheduler = new Scheduler("");
+
         server.configure(argv);
         System.out.println("listening on: " + DEFAULT_PORT);
         // WebviewService webviewService = new WebviewService();
@@ -120,10 +124,10 @@ public class Control extends NanoHTTPD{
 
     void configure(String[] argv){
         String dir = "./";
-        File config = new File(dir + "config.json");
+        File config = new File(dir + "config1.json");
         if (!config.exists()) return;
         try {
-            String content = CommonUtil.readFromFile(dir + "config.json");
+            String content = CommonUtil.readFromFile(dir + "config1.json");
             JSONObject config_json = new JSONObject(content);
             if (config_json.has("ADB_PATH")){
                 log("ADB: " + config_json.getString("ADB_PATH"));

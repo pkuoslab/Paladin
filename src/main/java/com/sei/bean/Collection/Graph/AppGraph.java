@@ -52,4 +52,10 @@ public class AppGraph {
     public void appendActivity(ActivityNode node){
         activities.add(node);
     }
+
+    public FragmentNode getFragment(String activity, int hash){
+        ActivityNode activityNode = getAct(activity);
+        if (activityNode == null) return null;
+        return activityNode.getFragment(hash);
+    }
 }

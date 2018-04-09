@@ -31,6 +31,10 @@ public class FragmentNode {
     public List<String> path_list;
     public List<String> edit_fields;
 
+    public List<String> clicked_edges;
+    public List<Integer> intrapath_index;
+    public List<Integer> interpath_index;
+
     public FragmentNode(){
         traverse_over = false;
         intrapaths = new ArrayList<>();
@@ -42,6 +46,11 @@ public class FragmentNode {
 
         path_list = new ArrayList<>();
         edit_fields = new ArrayList<>();
+
+        clicked_edges = new ArrayList<>();
+        intrapath_index = new ArrayList<>();
+        interpath_index = new ArrayList<>();
+
         color = "white";
     }
 

@@ -49,24 +49,27 @@ public class FragmentStack {
     }
 
     public int getPosition(ViewTree tree){
-        return matchPosition(tree, CommonUtil.SIMILARITY);
+        return matchPosition(tree.getActivityName(), tree.getTreeStructureHash(), tree.getClickable_list(), CommonUtil.SIMILARITY);
     }
 
-    public int matchPosition(ViewTree tree, double sm){
-        for (int i=stack.size() - 1; i >=0; i--){
-            if (stack.get(i).getStructure_hash() == tree.getTreeStructureHash())
+    public int getPosition(String activity, int hash, List<String> clickable_list){
+        return matchPosition(activity, hash, clickable_list, CommonUtil.SIMILARITY);
+    }
+
+    public int matchPosition(String activity, int hash, List<String> clickable_list, double sm){
+        for (int i =stack.size()-1; i >=0; i--){
+            if (stack.get(i).getStructure_hash() == hash)
                 return i;
         }
 
         for (int i=stack.size() - 1; i >= 0; i--){
             String act = stack.get(i).activity;
-            if (!tree.getActivityName().equals(act))
+            if (!activity.equals(act))
                 continue;
-            double s = tree.calc_similarity(stack.get(i).get_Clickable_list());
+            double s = CommonUtil.calc_similarity(clickable_list, stack.get(i).get_Clickable_list());
             if (s > sm)
                 return i;
         }
-
         return -1;
     }
 
