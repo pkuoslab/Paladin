@@ -23,7 +23,7 @@ public class CommonUtil {
     public static String PASSWORD = "monkeymonkey";
     public static Boolean SCREENSHORT = true;
     public static String SERIAL = "";
-    public static Random random = new Random(1011); //trail : 259
+    public static Random random = new Random(777); //trail : 259
 
 
     public static void main(String[] argv){

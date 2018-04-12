@@ -171,7 +171,8 @@ public class ClientUtil{
             List<ViewNode> nodes = tree.get_clickable_nodes();
 
             for(ViewNode node : nodes){
-                if (node.getViewTag().contains("Button") && node.getViewText().contains("Allow")) {
+                if (node.getViewTag().contains("Button") &&
+                        (node.getViewText().contains("Allow") || node.getViewText().contains("允许"))) {
                     int x = node.getX() + node.getWidth() / 2;
                     int y = node.getY() + node.getHeight() / 2;
                     click(d, x, y);

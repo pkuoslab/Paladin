@@ -244,6 +244,7 @@ public class Device extends Thread{
         if (currentTree == null){
             log("restart too many times");
             Exit = true;
+            return;
         }
 
         int p = -1;
@@ -253,6 +254,7 @@ public class Device extends Thread{
             if (currentTree == null){
                 log("restart can not get tree");
                 Exit = true;
+                return;
             }
 
             if (fragmentStack != null) p = fragmentStack.getPosition(currentTree);

@@ -5,6 +5,7 @@ import com.sei.bean.Collection.Graph.FragmentNode;
 import com.sei.bean.Collection.Graph.GraphAdjustor;
 import com.sei.bean.View.Action;
 import com.sei.bean.View.ViewTree;
+import com.sei.server.component.Decision;
 
 import java.util.List;
 
@@ -19,12 +20,14 @@ public class DFGraphStrategy extends DepthFirstStrategy{
         Action action = null;
         do {
             action = this.graphAdjustor.getEdgeAction(tree);
-            FragmentNode fragmentNode = graphAdjustor.appGraph.getFragment(action.target_activity, action.target_hash);
-            if (fragmentNode != null) {
-                int p = d.fragmentStack.getPosition(action.target_activity, action.target_hash, fragmentNode.get_Clickable_list());
-                if (p == -1) break;
-                else d.log(action.target + " in stack");
-            }
+            //if (action != null) d.log("action: to " + action.target);
+            if (action == null) return action;
+//            FragmentNode fragmentNode = graphAdjustor.appGraph.getFragment(action.target_activity, action.target_hash);
+//            if (fragmentNode != null) {
+//                int p = d.fragmentStack.getPosition(action.target_activity, action.target_hash, fragmentNode.get_Clickable_list());
+//                if (p == -1) break;
+//                else d.log(action.target + " in stack");
+//            }
         }while(action != null);
 
         return action;

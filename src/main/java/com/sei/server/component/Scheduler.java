@@ -30,11 +30,11 @@ public class Scheduler {
     public Scheduler(String argv){
         devices = new ArrayList<>();
         stacks = load();
-        graphAdjustor = new GraphAdjustor();
+        graphAdjustor = new GraphAdjustor(argv);
         ErrorLog = new HashMap<>();
-        if (argv.contains("-r"))
+        if (argv.contains("-r")) {
             strategy = new DFGraphStrategy(graphAdjustor, devices);
-        else
+        }else
             strategy = new DepthFirstStrategy(graphAdjustor, devices);
     }
 

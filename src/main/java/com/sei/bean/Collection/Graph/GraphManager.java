@@ -196,7 +196,6 @@ public class GraphManager extends UiTransition{
         }
     }
 
-    @Override
     public void load(){
         try{
             String graphStr = CommonUtil.readFromFile("graph.json");

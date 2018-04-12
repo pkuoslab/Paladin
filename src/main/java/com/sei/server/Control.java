@@ -58,7 +58,7 @@ public class Control extends NanoHTTPD{
                 JSONObject jo = new JSONObject();
                 try {
                     jo.put("nodes", scheduler.graphAdjustor.getAllNodesTag());
-                    jo.put("activity", scheduler.graphAdjustor.appGraph.getActivities().size());
+                    jo.put("activity", scheduler.graphAdjustor.getAllNodesTag().size());
                 }catch (Exception e){
                     e.printStackTrace();
                 }

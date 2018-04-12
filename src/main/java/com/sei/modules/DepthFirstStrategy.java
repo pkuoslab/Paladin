@@ -7,6 +7,8 @@ import com.sei.bean.View.Action;
 import com.sei.bean.View.ViewTree;
 import com.sei.server.component.Decision;
 import com.sei.util.CommonUtil;
+import com.sei.util.ViewUtil;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -31,7 +33,7 @@ public class DepthFirstStrategy {
         Action new_action = null;
         if (prev_decision.code == Decision.CODE.CONTINUE && response != Device.UI.SAME
                 && response != Device.UI.OUT)
-            graphAdjustor.update(id, prev_decision.action, currentTree, newTree);
+            update_graph(id, prev_decision, currentTree, newTree);
 
         if (response == Device.UI.OUT)
             return new Decision(Decision.CODE.RESTART);
@@ -114,5 +116,9 @@ public class DepthFirstStrategy {
             actions.add(d.fragmentStack.get(i).getAction());
 
         return actions;
+    }
+
+    public void update_graph(int id, Decision prev_decision, ViewTree currentTree, ViewTree newTree){
+        graphAdjustor.update(id, prev_decision.action, currentTree, newTree);
     }
 }

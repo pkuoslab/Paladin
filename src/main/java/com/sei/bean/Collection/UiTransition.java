@@ -24,6 +24,6 @@ public abstract class UiTransition {
         int LOGIN = 3;
     }
     public void save(){}
-    public void load(){}
+    public void load(String argv){}
     public void reset(){}
 }
