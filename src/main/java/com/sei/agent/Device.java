@@ -26,7 +26,7 @@ public class Device extends Thread{
     ViewTree currentTree;
     Scheduler scheduler;
     GraphAdjustor graphAdjustor;
-    Boolean Exit;
+    public Boolean Exit;
     Boolean LOGIN_SUCCESS;
 
     public interface UI{
@@ -61,9 +61,9 @@ public class Device extends Thread{
         ViewTree newTree;
         int response;
         ClientUtil.startApp(this, ConnectUtil.launch_pkg);
-        if(ClientUtil.checkPermission(this)) restart();
+        if(ClientUtil.checkPermission(this)) enter();
         currentTree = getCurrentTree();
-        if (currentTree == null) restart();
+        if (currentTree == null) enter();
 
         if (checkLogin(currentTree)) currentTree = getCurrentTree();
 
@@ -79,7 +79,8 @@ public class Device extends Thread{
         decision = scheduler.update(id, currentTree, currentTree, decision, UI.NEW);
         response = execute_decision(decision);
         do{
-            if (response != UI.SAME) {
+            if ((decision.code != Decision.CODE.CONTINUE ||
+                    response != UI.SAME) && response != UI.OUT) {
                 newTree = getCurrentTree();
                 if (newTree == null) response = UI.OUT;
             }else
@@ -120,7 +121,7 @@ public class Device extends Thread{
         }else if (decision.code == Decision.CODE.RESTART || decision.code == Decision.CODE.GO){
             if (decision.code == Decision.CODE.RESTART) {
                 log("need restart stack size: " + fragmentStack.getSize());
-                restart();
+                enter();
             }
             response = recover_stack();
             if (response != UI.SAME && response != UI.OUT){
@@ -187,7 +188,7 @@ public class Device extends Thread{
     }
 
     public int recover_stack(){
-        currentTree = getCurrentTree();
+        //currentTree = getCurrentTree();
         if (currentTree == null)
             return UI.OUT;
 
@@ -209,32 +210,47 @@ public class Device extends Thread{
 
     int go_back(int limit){
         int t = 0;
+
         do{
             int response = ClientUtil.execute_action(this, Action.action_list.BACK);
             if (response == UI.OUT) return UI.OUT;
             currentTree = getCurrentTree();
-            if (currentTree == null)
-                return UI.OUT;
+            if (currentTree == null) return UI.OUT;
+
             int p = fragmentStack.getPosition(currentTree);
             if (p != -1){
                 log("Back to position " + p);
                 return p;
             }else{
-                log("Back to unknown position, continue back");
+                // 针对按返回键需要点确定才能离开的页面
+                log("Back to unknown position, try skip");
+                Action action = graphAdjustor.getInterPathAction(this, currentTree);
+                if (action != null && t < limit) {
+                    ClientUtil.execute_action(this, Action.action_list.CLICK, action.path);
+                }else{
+                    t += 1;
+                    continue;
+                }
+
+                if (response == UI.OUT) return UI.OUT;
+                currentTree = getCurrentTree();
+                if (currentTree == null) return UI.OUT;
+
+                p = fragmentStack.getPosition(currentTree);
+                if (p != -1) return p;
             }
             t += 1;
         }while(t < limit);
         return UI.OUT;
     }
 
-    void restart(){
-        int limit = 3;
-        int t = 0;
-
+    Boolean restart(){
         ClientUtil.stopApp(this, ConnectUtil.launch_pkg);
         ClientUtil.startApp(this, ConnectUtil.launch_pkg);
         currentTree = getCurrentTree();
 
+        int limit = 3;
+        int t = 0;
         while (currentTree == null && t < limit){
             CommonUtil.start_paladin(this);
             currentTree = getCurrentTree();
@@ -244,17 +260,23 @@ public class Device extends Thread{
         if (currentTree == null){
             log("restart too many times");
             Exit = true;
-            return;
-        }
+            return false;
+        }else
+            return true;
+    }
+
+    void enter(){
 
         int p = -1;
-        t = 0;
+        int t = 0;
+        int limit = 3;
+
+        if (!restart()) return;
+
         do {
             if (checkLogin(currentTree)) currentTree = getCurrentTree();
             if (currentTree == null){
-                log("restart can not get tree");
-                Exit = true;
-                return;
+                if (!restart()) return;
             }
 
             if (fragmentStack != null) p = fragmentStack.getPosition(currentTree);
@@ -277,6 +299,7 @@ public class Device extends Thread{
 
     public Boolean checkLogin(ViewTree tree){
         Boolean success = false;
+        if (tree == null) return success;
         if (tree.getActivityName().contains("LoginPasswordUI") && LOGIN_SUCCESS) {
             success = ClientUtil.login(this, tree);
             LOGIN_SUCCESS = success;

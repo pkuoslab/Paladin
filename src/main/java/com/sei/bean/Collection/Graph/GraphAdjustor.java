@@ -1,5 +1,6 @@
 package com.sei.bean.Collection.Graph;
 
+import com.sei.agent.Device;
 import com.sei.bean.Collection.UiTransition;
 import com.sei.bean.View.Action;
 import com.sei.bean.View.ViewTree;
@@ -9,6 +10,7 @@ import com.sei.util.ConnectUtil;
 import com.sei.util.SerializeUtil;
 import com.sun.org.apache.xpath.internal.operations.Bool;
 
+import javax.xml.ws.Response;
 import java.io.File;
 import java.io.FileWriter;
 import java.util.ArrayList;
@@ -20,8 +22,9 @@ import static com.sei.util.CommonUtil.log;
 
 public class GraphAdjustor extends UiTransition{
     public AppGraph appGraph;
+    public AppGraph reGraph;
     Boolean REPLAY_MODE = false;
-    Map<String, List<String>> explored_tags;
+    String RECENT_INTENT_TIMESTAMP = "";
 
     public GraphAdjustor(String argv){
         File graph = new File( "./graph.json");
@@ -38,26 +41,40 @@ public class GraphAdjustor extends UiTransition{
     public void registerAllHandlers(){
         registerHandler(UI.NEW_ACT, new Handler() {
             @Override
-            public int adjust(Action action, ViewTree currentTree, ViewTree new_tree) {
+            public int adjust(Device d, Action action, ViewTree currentTree, ViewTree new_tree) {
                 action.setTarget(new_tree.getActivityName(), new_tree.getTreeStructureHash());
+                action.setIntent(getSerIntent(d));
                 FragmentNode frag_prev = locate(currentTree);
                 frag_prev.addInterpath(action);
                 ActivityNode activityNode = new ActivityNode(new_tree.getActivityName());
                 FragmentNode frag_cur = new FragmentNode(new_tree);
                 activityNode.appendFragment(frag_cur);
-                appGraph.appendActivity(activityNode);
+                if (!REPLAY_MODE)
+                    appGraph.appendActivity(activityNode);
+                else {
+                    appGraph.transfer_actions(frag_cur);
+                    reGraph.appendActivity(activityNode);
+                }
+
                 return UI.NEW_ACT;
             }
         });
 
         registerHandler(UI.OLD_ACT_NEW_FRG, new Handler() {
             @Override
-            public int adjust(Action action, ViewTree currentTree, ViewTree new_tree) {
+            public int adjust(Device d, Action action, ViewTree currentTree, ViewTree new_tree) {
                 action.setTarget(new_tree.getActivityName(), new_tree.getTreeStructureHash());
+                action.setIntent(getSerIntent(d));
                 FragmentNode frag_prev = locate(currentTree);
                 frag_prev.addInterpath(action);
-                ActivityNode activityNode = appGraph.find_Activity(new_tree.getActivityName());
+                ActivityNode activityNode;
+                if (!REPLAY_MODE)
+                    activityNode = appGraph.find_Activity(new_tree.getActivityName());
+                else
+                    activityNode = reGraph.find_Activity(new_tree.getActivityName());
                 FragmentNode frag_cur = new FragmentNode(new_tree);
+                if (REPLAY_MODE) appGraph.transfer_actions(frag_cur);
+
                 activityNode.appendFragment(frag_cur);
                 return UI.OLD_ACT_NEW_FRG;
             }
@@ -65,8 +82,9 @@ public class GraphAdjustor extends UiTransition{
 
         registerHandler(UI.OLD_ACT_OLD_FRG, new Handler() {
             @Override
-            public int adjust(Action action, ViewTree currentTree, ViewTree new_tree) {
+            public int adjust(Device d, Action action, ViewTree currentTree, ViewTree new_tree) {
                 action.setTarget(new_tree.getActivityName(), new_tree.getTreeStructureHash());
+                action.setIntent(getSerIntent(d));
                 FragmentNode frag_prev = locate(currentTree);
                 frag_prev.addInterpath(action);
                 return UI.OLD_ACT_OLD_FRG;
@@ -75,20 +93,26 @@ public class GraphAdjustor extends UiTransition{
 
         registerHandler(UI.NEW_FRG, new Handler() {
             @Override
-            public int adjust(Action action, ViewTree currentTree, ViewTree new_tree) {
+            public int adjust(Device d, Action action, ViewTree currentTree, ViewTree new_tree) {
                 action.setTarget(new_tree.getActivityName(), new_tree.getTreeStructureHash());
                 FragmentNode frag_prev = locate(currentTree);
                 frag_prev.addIntrapath(action);
-                ActivityNode activityNode = appGraph.find_Activity(new_tree.getActivityName());
+                ActivityNode activityNode;
+                if (!REPLAY_MODE)
+                    activityNode = appGraph.find_Activity(new_tree.getActivityName());
+                else
+                    activityNode = reGraph.find_Activity(new_tree.getActivityName());
                 FragmentNode frag_cur = new FragmentNode(new_tree);
                 activityNode.appendFragment(frag_cur);
+                if (REPLAY_MODE) appGraph.transfer_actions(frag_cur);
+
                 return UI.NEW_FRG;
             }
         });
 
         registerHandler(UI.OLD_FRG, new Handler() {
             @Override
-            public int adjust(Action action, ViewTree currentTree, ViewTree new_tree) {
+            public int adjust(Device d, Action action, ViewTree currentTree, ViewTree new_tree) {
                 action.setTarget(new_tree.getActivityName(), new_tree.getTreeStructureHash());
                 FragmentNode frag_prev = locate(currentTree);
                 frag_prev.addIntrapath(action);
@@ -98,64 +122,66 @@ public class GraphAdjustor extends UiTransition{
     }
 
 
-    public int update(int id, Action action, ViewTree currentTree, ViewTree new_tree){
+    public int update(Device d, Action action, ViewTree currentTree, ViewTree new_tree, int response){
+        int id = d.id;
         if (action == null){
             log("device #" + id + "'s first node");
-            if (REPLAY_MODE){
-                String act = currentTree.getActivityName();
-                int hash = currentTree.getTreeStructureHash();
-                explored_tags.put(act, new ArrayList<>());
-                explored_tags.get(act).add(String.valueOf(hash));
-            }else
-                locate(currentTree);
+            locate(currentTree);
+            return 0;
+        }
+
+        if (response == Device.UI.OUT){
+            String current_app = ClientUtil.getForeground(d);
+            String act = ClientUtil.getTopActivityName(d);
+            action.setTarget(current_app + "_" + act);
+            action.setIntent(getSerIntent(d));
+            FragmentNode fragmentNode = locate(currentTree);
+            fragmentNode.interAppPaths.add(action);
+            d.log("add interAppPath " + current_app + "_" + act);
             return 0;
         }
 
         if (currentTree.getTreeStructureHash() == new_tree.getTreeStructureHash())
             return UI.OLD_FRG;
 
+        AppGraph graph;
+        if (!REPLAY_MODE)
+            graph = appGraph;
+        else
+            graph = reGraph;
 
-        if (!REPLAY_MODE) {
-            Handler handler = handler_table.get(queryGraph(id, currentTree, new_tree));
-            return handler.adjust(action, currentTree, new_tree);
-        }else
-            return handleTags(id, currentTree, new_tree);
+        Handler handler = handler_table.get(queryGraph(graph, d, currentTree, new_tree));
+        return handler.adjust(d, action, currentTree, new_tree);
+
     }
 
-    public int handleTags(int id, ViewTree currentTree, ViewTree new_tree){
-        String activity = new_tree.getActivityName();
-        int hash = new_tree.getTreeStructureHash();
-        if (!explored_tags.containsKey(activity)) {
-            log("device #" + id + ": new activity " + activity);
-            explored_tags.put(activity, new ArrayList<>());
-            explored_tags.get(activity).add(String.valueOf(hash));
-        }else if (!explored_tags.get(activity).contains(String.valueOf(hash))) {
-            log("device #" + id + ": new fragment " + activity + "_" + hash);
-            explored_tags.get(activity).add(String.valueOf(hash));
-        }
-        return 0;
-    }
-
-    public int queryGraph(int id, ViewTree currentTree, ViewTree new_tree){
-        ActivityNode actNode = appGraph.getAct(new_tree.getActivityName());
+    public int queryGraph(AppGraph graph, Device d, ViewTree currentTree, ViewTree new_tree){
+        int id = d.id;
+        ActivityNode actNode = graph.getAct(new_tree.getActivityName());
+        String name = new_tree.getActivityName() + "_" + new_tree.getTreeStructureHash();
 
         if(!currentTree.getActivityName().equals(new_tree.getActivityName())){
             if (actNode == null){
-                log("device #" + id + ": brand new activity " + new_tree.getActivityName() + "_" + new_tree.getTreeStructureHash());
+                log("device #" + id + ": brand new activity " + name);
+                CommonUtil.getSnapshot(new_tree, d);
                 return UI.NEW_ACT;
             }else if(actNode.find_Fragment(new_tree) == null){
-                log("device #" + id + ": old activity brand new fragment " + actNode.getActivity_name() + "_" + new_tree.getTreeStructureHash());
+                log("device #" + id + ": old activity brand new fragment " + name);
+                CommonUtil.getSnapshot(new_tree, d);
                 return UI.OLD_ACT_NEW_FRG;
             }else{
-                log("device #" + id + ": old activity and old fragment " + actNode.getActivity_name() + "_" + new_tree.getTreeStructureHash());
+                log("device #" + id + ": old activity and old fragment " + name);
                 return UI.OLD_ACT_OLD_FRG;
             }
         }else{
             if(actNode.find_Fragment(new_tree) == null){
-                log("device #" + id + ": brand new fragment " + new_tree.getActivityName() + " " +  new_tree.getTreeStructureHash());
+                log("device #" + id + ": brand new fragment " + name);
+                CommonUtil.getSnapshot(new_tree, d);
                 return UI.NEW_FRG;
             }else{
-                log("device #" + id + ": old fragment " + new_tree.getTreeStructureHash());
+                log("device #" + id + ": old fragment " + name);
+                if (currentTree.getTreeStructureHash() != new_tree.getTreeStructureHash())
+                    CommonUtil.getSnapshot(new_tree, d);
                 return UI.OLD_FRG;
             }
         }
@@ -169,6 +195,15 @@ public class GraphAdjustor extends UiTransition{
             String content = SerializeUtil.toBase64(appGraph);
             writer.write(content);
             writer.close();
+
+            if (reGraph != null){
+                file = new File("re_graph.json");
+                FileWriter writer1 = new FileWriter(file);
+                content = SerializeUtil.toBase64(reGraph);
+                writer1.write(content);
+                writer1.close();
+            }
+
         }catch(Exception e){
             e.printStackTrace();
         }
@@ -179,19 +214,16 @@ public class GraphAdjustor extends UiTransition{
         try{
             if (argv.contains("-r")){
                 REPLAY_MODE = true;
-                explored_tags = new HashMap<>();
+                reGraph = new AppGraph();
+                reGraph.setPackage_name(ConnectUtil.launch_pkg);
             }
 
             String graphStr = CommonUtil.readFromFile("graph.json");
             appGraph = (AppGraph) SerializeUtil.toObject(graphStr, AppGraph.class);
             for(ActivityNode actNode: appGraph.getActivities()){
                 for(FragmentNode frgNode: actNode.getFragments()) {
+                    frgNode.VISIT = false;
                     frgNode.clicked_edges = new ArrayList<>();
-                    frgNode.intrapath_index = new ArrayList<>();
-                    frgNode.interpath_index = new ArrayList<>();
-                    if (argv.contains("-r")){
-                        frgNode.setTraverse_over(false);
-                    }
                 }
             }
         }catch (Exception e){
@@ -205,14 +237,19 @@ public class GraphAdjustor extends UiTransition{
     }
 
     public FragmentNode locate(ViewTree tree){
-        ActivityNode activityNode = appGraph.getAct(tree.getActivityName());
+        AppGraph graph;
+        if (!REPLAY_MODE) graph = appGraph;
+        else graph = reGraph;
+
+        ActivityNode activityNode = graph.getAct(tree.getActivityName());
         FragmentNode fragmentNode = null;
         if (activityNode == null){
             log("fail to find " + tree.getActivityName() + "_" + tree.getTreeStructureHash());
             activityNode = new ActivityNode(tree.getActivityName());
-            appGraph.appendActivity(activityNode);
+            graph.appendActivity(activityNode);
             fragmentNode = new FragmentNode(tree);
             activityNode.appendFragment(fragmentNode);
+            if (REPLAY_MODE) appGraph.transfer_actions(fragmentNode);
             return fragmentNode;
         }
 
@@ -221,6 +258,7 @@ public class GraphAdjustor extends UiTransition{
             log("fail to locate " + tree.getActivityName() + "_" + tree.getTreeStructureHash());
             fragmentNode = new FragmentNode(tree);
             activityNode.appendFragment(fragmentNode);
+            if (REPLAY_MODE) appGraph.transfer_actions(fragmentNode);
         }
 
         return fragmentNode;
@@ -233,38 +271,66 @@ public class GraphAdjustor extends UiTransition{
             int ser = CommonUtil.shuffle(currentNode.path_index, currentNode.path_list.size());
             currentNode.path_index.add(ser);
             String path = currentNode.path_list.get(ser);
-            if (currentNode.edit_fields.contains(path))
+            if (currentNode.edit_fields.contains(path)) {
                 action = new Action(path, Action.action_list.ENTERTEXT);
-            else
+            }else {
                 action = new Action(path, Action.action_list.CLICK);
+            }
+
         }else
             currentNode.setTraverse_over(true);
         return action;
     }
 
-    public Action getEdgeAction(ViewTree currentTree){
+    public Action getEdgeAction(Device d, ViewTree currentTree){
         FragmentNode currentNode = locate(currentTree);
-        while (currentNode.interpath_index.size() < currentNode.interpaths.size()){
-            int ser = CommonUtil.shuffle(currentNode.interpath_index, currentNode.interpaths.size());
-            currentNode.interpath_index.add(ser);
-            Action action = currentNode.interpaths.get(ser);
-            if (!currentNode.clicked_edges.contains(action.target)){
-                currentNode.clicked_edges.add(action.target);
-                return action;
+        Action action = null;
+        while (currentNode.path_index.size() < currentNode.path_list.size()) {
+            int ser = CommonUtil.shuffle(currentNode.path_index, currentNode.path_list.size());
+            currentNode.path_index.add(ser);
+            String path = currentNode.path_list.get(ser);
+            if (currentNode.edit_fields.contains(path)) {
+                action = new Action(path, Action.action_list.ENTERTEXT);
+            }else {
+                action = new Action(path, Action.action_list.CLICK);
+            }
+
+            if (currentNode.targets.size() == 0) break;
+
+            int index = currentNode.targets.get(ser).indexOf("_");
+            String target_act = currentNode.targets.get(ser).substring(0, index);
+            int target_hash = Integer.parseInt(currentNode.targets.get(ser).substring(index+1));
+            FragmentNode node = appGraph.getFragment(target_act, target_hash);
+            if (node == null) break;
+
+            int p = d.fragmentStack.getPosition(target_act, target_hash, node.get_Clickable_list());
+            if (p == -1) break;
+            else{
+                //d.log(target_act + "_" + target_hash + " in stack " + p);
+                continue;
             }
         }
 
-        while (currentNode.intrapath_index.size() < currentNode.intrapaths.size()){
-            int ser = CommonUtil.shuffle(currentNode.intrapath_index, currentNode.intrapaths.size());
-            currentNode.intrapath_index.add(ser);
-            Action action = currentNode.intrapaths.get(ser);
-            if (!currentNode.clicked_edges.contains(action.target)){
-                currentNode.clicked_edges.add(action.target);
-                return action;
-            }
-        }
+        if (currentNode.path_index.size() >= currentNode.path_list.size())
+            currentNode.setTraverse_over(true);
 
-        return null;
+        return action;
+
+    }
+
+    public String getSerIntent(Device d){
+        String record = ConnectUtil.sendHttpGet(d.ip + "/intent");
+        int idx = record.indexOf("$");
+        if (idx == -1) return null;
+        String timestamp = record.substring(0, idx);
+
+        if (timestamp.equals(RECENT_INTENT_TIMESTAMP))
+            return null;
+        else{
+            RECENT_INTENT_TIMESTAMP = timestamp;
+            //d.log(record);
+            return record.substring(idx+1);
+        }
     }
 
     public Boolean hasAction(String activity, int hash){
@@ -289,17 +355,23 @@ public class GraphAdjustor extends UiTransition{
     }
 
     public FragmentNode searchFragment(ViewTree tree){
-        ActivityNode actNode = appGraph.getAct(tree.getActivityName());
+        AppGraph graph;
+        if (REPLAY_MODE) graph = reGraph;
+        else graph = appGraph;
+
+        ActivityNode actNode = graph.getAct(tree.getActivityName());
         if (actNode == null) return null;
         return actNode.find_Fragment(tree);
     }
 
     public Map<String, List<String>> getAllNodesTag(){
-        if (REPLAY_MODE) return explored_tags;
+        AppGraph graph;
+        if (REPLAY_MODE) graph = reGraph;
+        else graph = appGraph;
 
         Map<String, List<String>> tags = new HashMap<>();
-        for(int i=0; i < appGraph.getActivities().size(); i++){
-            ActivityNode act = appGraph.getActivities().get(i);
+        for(int i=0; i < graph.getActivities().size(); i++){
+            ActivityNode act = graph.getActivities().get(i);
             tags.put(act.activity_name, new ArrayList<>());
             for(int j=act.getFragments().size()-1; j>=0; j--){
                 FragmentNode frg = act.getFragments().get(j);
@@ -307,5 +379,18 @@ public class GraphAdjustor extends UiTransition{
             }
         }
         return tags;
+    }
+
+    public Action getInterPathAction(Device d, ViewTree tree){
+        FragmentNode fragmentNode = locate(tree);
+        if (fragmentNode != null && fragmentNode.interpaths.size() > 0){
+            for (Action action: fragmentNode.interpaths){
+                String act = action.target_activity;
+                if (d.fragmentStack.contains(act))
+                    return action;
+            }
+            return null;
+        }else
+            return null;
     }
 }

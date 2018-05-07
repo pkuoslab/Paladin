@@ -1,5 +1,8 @@
 package com.sei.bean.Collection.Graph;
 
+import com.sei.bean.View.Action;
+import com.sei.util.CommonUtil;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -57,5 +60,46 @@ public class AppGraph {
         ActivityNode activityNode = getAct(activity);
         if (activityNode == null) return null;
         return activityNode.getFragment(hash);
+    }
+
+    public void transfer_actions(FragmentNode fragmentNode){
+        String activity = fragmentNode.getActivity();
+        ActivityNode activityNode = getAct(activity);
+        if (activityNode == null) return;
+        List<String> effective_path = new ArrayList<>();
+        List<String> targets = new ArrayList<>();
+
+        if (activity.contains("SettingsSwitchAccountUI")) {
+            fragmentNode.path_list = new ArrayList<>();
+            return;
+        }
+
+        for(FragmentNode node: activityNode.getFragments()){
+            double s = node.calc_similarity(fragmentNode);
+            if (s> CommonUtil.SIMILARITY-0.1){
+                node.VISIT = true;
+                //CommonUtil.log("match: " + node.getSignature());
+                List<Action> actions = node.fetch_edges();
+                for (Action action: actions){
+                    if (!effective_path.contains(action.path) &&
+                            !targets.contains(action.target)) {
+                        effective_path.add(action.path);
+                        targets.add(action.target);
+                    }
+                }
+            }
+        }
+
+        if (effective_path.size() != 0)
+            fragmentNode.path_list = new ArrayList<>();
+        for(int i=0; i < effective_path.size(); i++){
+            String path = effective_path.get(i);
+            int idx = path.indexOf("#");
+            String xpath = path.substring(0,idx);
+            if (fragmentNode.get_Clickable_list().contains(xpath)) {
+                fragmentNode.path_list.add(path);
+                fragmentNode.targets.add(targets.get(i));
+            }
+        }
     }
 }

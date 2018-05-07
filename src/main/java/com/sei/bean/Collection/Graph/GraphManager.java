@@ -1,6 +1,7 @@
 package com.sei.bean.Collection.Graph;
 
 
+import com.sei.agent.Device;
 import com.sei.bean.Collection.Tuple2;
 import com.sei.bean.Collection.UiTransition;
 import com.sei.bean.View.Action;
@@ -66,7 +67,7 @@ public class GraphManager extends UiTransition{
     public void registerAllHandlers(){
         registerHandler(UI.NEW_ACT, new Handler() {
             @Override
-            public int adjust(Action action, ViewTree currentTree, ViewTree new_tree) {
+            public int adjust(Device d, Action action, ViewTree currentTree, ViewTree new_tree) {
                 fragmentNode.addInterpath(action);
                 activityNode = new ActivityNode(new_tree.getActivityName());
                 appGraph.appendActivity(activityNode);
@@ -78,7 +79,7 @@ public class GraphManager extends UiTransition{
 
         registerHandler(UI.OLD_ACT_NEW_FRG, new Handler() {
             @Override
-            public int adjust(Action action, ViewTree currentTree, ViewTree new_tree) {
+            public int adjust(Device d, Action action, ViewTree currentTree, ViewTree new_tree) {
                 fragmentNode.addInterpath(action);
                 activityNode = appGraph.getAct(new_tree.getActivityName());
                 fragmentNode = new FragmentNode(new_tree);
@@ -89,7 +90,7 @@ public class GraphManager extends UiTransition{
 
         registerHandler(UI.OLD_ACT_OLD_FRG, new Handler() {
             @Override
-            public int adjust(Action action, ViewTree currentTree, ViewTree new_tree) {
+            public int adjust(Device d, Action action, ViewTree currentTree, ViewTree new_tree) {
                 fragmentNode.addInterpath(action);
                 activityNode = appGraph.getAct(new_tree.getActivityName());
                 fragmentNode = activityNode.find_Fragment(new_tree);
@@ -99,7 +100,7 @@ public class GraphManager extends UiTransition{
 
         registerHandler(UI.NEW_FRG, new Handler() {
             @Override
-            public int adjust(Action action, ViewTree currentTree, ViewTree new_tree) {
+            public int adjust(Device d, Action action, ViewTree currentTree, ViewTree new_tree) {
                 fragmentNode.addIntrapath(action);
                 fragmentNode = new FragmentNode(new_tree);
                 activityNode.appendFragment(fragmentNode);
@@ -109,7 +110,7 @@ public class GraphManager extends UiTransition{
 
         registerHandler(UI.OLD_FRG, new Handler() {
             @Override
-            public int adjust(Action action, ViewTree currentTree, ViewTree new_tree) {
+            public int adjust(Device d, Action action, ViewTree currentTree, ViewTree new_tree) {
                 fragmentNode.addIntrapath(action);
                 fragmentNode = activityNode.find_Fragment(new_tree);
                 return 0;
@@ -123,7 +124,8 @@ public class GraphManager extends UiTransition{
     public int update(Action action, ViewTree currentTree, ViewTree new_tree){
        int status = queryGraph(currentTree, new_tree);
        Handler handler = handler_table.get(status);
-       return handler.adjust(action, currentTree, new_tree);
+//       return handler.adjust(action, currentTree, new_tree);
+        return 0;
 //       switch (status){
 //           case UI.NEW_ACT:
 //               fragmentNode.addInterpath(action);

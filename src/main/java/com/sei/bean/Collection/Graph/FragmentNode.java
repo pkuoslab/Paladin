@@ -4,6 +4,7 @@ import com.alibaba.fastjson.annotation.JSONField;
 import com.sei.bean.View.Action;
 import com.sei.bean.View.ViewNode;
 import com.sei.bean.View.ViewTree;
+import com.sei.util.CommonUtil;
 import com.sei.util.ViewUtil;
 
 import java.util.ArrayList;
@@ -23,23 +24,25 @@ public class FragmentNode {
     Action action;
     List<Action> intrapaths;
     List<Action> interpaths;
+    List<Action> interAppPaths;
     String color;
     Boolean menuClicked = false;
-    public List<String> unclick_list;
+
     public List<Integer> xpath_index;
     public List<Integer> path_index;
     public List<String> path_list;
     public List<String> edit_fields;
 
     public List<String> clicked_edges;
-    public List<Integer> intrapath_index;
-    public List<Integer> interpath_index;
+    public List<String> targets;
+    public Boolean VISIT = false;
 
     public FragmentNode(){
         traverse_over = false;
         intrapaths = new ArrayList<>();
         interpaths = new ArrayList<>();
-        unclick_list = new ArrayList<>();
+        interAppPaths = new ArrayList<>();
+
         click_list = new ArrayList<>();
         xpath_index = new ArrayList<>();
         path_index = new ArrayList<>();
@@ -48,8 +51,7 @@ public class FragmentNode {
         edit_fields = new ArrayList<>();
 
         clicked_edges = new ArrayList<>();
-        intrapath_index = new ArrayList<>();
-        interpath_index = new ArrayList<>();
+        targets = new ArrayList<>();
 
         color = "white";
     }
@@ -65,12 +67,26 @@ public class FragmentNode {
         this.activity = tree.getActivityName();
         for(String xpath: tree.getClickable_list()){
             List<ViewNode> vl = ViewUtil.getViewByXpath(tree.root, xpath);
-            for(int i=0; i < vl.size(); i++) {
-                ViewNode vn = vl.get(i);
-                if (vn != null && i < 6)
+            if (vl.size() <= 8) {
+                for (int i = 0; i < vl.size(); i++) {
+                    ViewNode vn = vl.get(i);
+                    if (vn == null) continue;
                     path_list.add(xpath + "#" + i);
-                if (vn != null && vn.getViewTag().contains("EditText"))
-                    edit_fields.add(xpath + "#" + i);
+                    if (vn != null && vn.getViewTag().contains("EditText"))
+                        edit_fields.add(xpath + "#" + i);
+                }
+            }else{
+                //随机抽取6个
+                List<Integer> random_list = new ArrayList<>();
+                for (int i = 0; i < 8; i++){
+                    int ser = CommonUtil.shuffle(random_list, vl.size());
+                    ViewNode vn = vl.get(ser);
+                    random_list.add(ser);
+                    if (vn == null) continue;
+                    path_list.add(xpath + "#" + ser);
+                    if (vn != null && vn.getViewTag().contains("EditText"))
+                        edit_fields.add(xpath + "#" + ser);
+                }
             }
         }
     }
@@ -154,6 +170,10 @@ public class FragmentNode {
         return intrapaths;
     }
 
+    public List<Action> getInterAppPaths(){ return this.interAppPaths;}
+
+    public void setInterAppPaths(List<Action> interAppPaths){ this.interAppPaths = interAppPaths;}
+
     public void addIntrapath(Action ea) {
         for (Action ee : intrapaths){
             if (ee != null) {
@@ -176,14 +196,6 @@ public class FragmentNode {
 
     public void setIntrapaths(List<Action> intrapaths) {
         this.intrapaths = intrapaths;
-    }
-
-    public List<String> getUnclick_list() {
-        return unclick_list;
-    }
-
-    public void setUnclick_list(List<String> unclick_list) {
-        this.unclick_list = unclick_list;
     }
 
     public List<String> get_Clickable_list() {
@@ -215,5 +227,12 @@ public class FragmentNode {
         }
         int tot = (click_list.size() + click_list2.size());
         return 2 * match / tot;
+    }
+
+    public List<Action> fetch_edges(){
+        List<Action> actions = new ArrayList<>();
+        actions.addAll(getInterpaths());
+        actions.addAll(getIntrapaths());
+        return actions;
     }
 }

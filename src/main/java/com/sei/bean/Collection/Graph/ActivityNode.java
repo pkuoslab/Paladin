@@ -48,7 +48,6 @@ public class ActivityNode {
                 fc.set_Clickable_list(click_lists);
                 fc.setStructure_hash(hash);
                 fc.setActivity(vc.getActivity());
-                fc.unclick_list = vc.unclick_list;
                 fc.interpaths = vc.interpaths;
                 fc.intrapaths = vc.intrapaths;
                 fc.menuClicked = vc.menuClicked;
@@ -76,11 +75,18 @@ public class ActivityNode {
             if (2 * match / tot > CommonUtil.SIMILARITY){
                 FragmentNode fc = new FragmentNode(vt);
                 //深拷贝点击过的节点
-                for(int i : vc.path_index)
-                    fc.path_index.add(i);
+                for(int i : vc.path_index) {
+                    String path = vc.path_list.get(i);
+                    if (fc.path_list.contains(path)){
+                        int idx = fc.path_list.indexOf(path);
+                        fc.path_index.add(idx);
+                    }
+                }
+
                 fc.interpaths = vc.interpaths;
                 fc.intrapaths = vc.intrapaths;
                 fc.menuClicked = vc.menuClicked;
+                fc.path_list = vc.path_list;
                 fragments.add(fc);
                 return fc;
             }

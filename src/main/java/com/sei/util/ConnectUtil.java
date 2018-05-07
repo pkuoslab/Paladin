@@ -47,7 +47,7 @@ public class ConnectUtil {
             String request = str;
             URL url = new URL(request);
             URLConnection connection = url.openConnection();
-            connection.setReadTimeout(10 * 1000);
+            connection.setReadTimeout(20 * 1000);
             InputStream input = connection.getInputStream();
             Scanner sc = new Scanner(input);
 

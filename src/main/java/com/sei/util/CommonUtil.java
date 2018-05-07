@@ -1,10 +1,13 @@
 package com.sei.util;
 
 import com.sei.agent.Device;
+import com.sei.bean.View.ViewTree;
+import jdk.jfr.events.ExceptionThrownEvent;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.List;
@@ -15,15 +18,14 @@ import java.util.concurrent.TimeUnit;
  * Created by vector on 16/6/27.
  */
 public class CommonUtil {
-    public static String HOST = "http://127.0.0.1:6161";
     public static int DEFAULT_PORT = 5700;
     public static double SIMILARITY = 0.9;
     public static String DIR = "";
     public static String ADB_PATH = "/home/mike/Android/Sdk/platform-tools/";
-    public static String PASSWORD = "monkeymonkey";
     public static Boolean SCREENSHORT = true;
+    public static Boolean UITree = true;
     public static String SERIAL = "";
-    public static Random random = new Random(777); //trail : 259
+    public static Random random = new Random(1100); //trail : 259
 
 
     public static void main(String[] argv){
@@ -69,15 +71,39 @@ public class CommonUtil {
         }
     }
 
-    public static void getSnapshot(String name){
-        File dir = new File(ConnectUtil.launch_pkg);
+    public static void getSnapshot(ViewTree tree, Device d){
+        if (!SCREENSHORT) return;
+
+        File dir1 = new File("output");
+        if (!dir1.exists())
+            dir1.mkdir();
+
+        File dir = new File("output/" + ConnectUtil.launch_pkg);
         if (!dir.exists())
             dir.mkdir();
 
-        String picname = name + ".png";
-        ShellUtils2.execCommand(CommonUtil.ADB_PATH + "adb " + CommonUtil.SERIAL  +" shell screencap -p sdcard/" + picname);
-        ShellUtils2.execCommand(CommonUtil.ADB_PATH + "adb " + CommonUtil.SERIAL  +" pull sdcard/" + picname + " " + ConnectUtil.launch_pkg + "/");
-        ShellUtils2.execCommand(CommonUtil.ADB_PATH + "adb " + CommonUtil.SERIAL  +" shell rm sdcard/" + picname);
+        String picname = tree.getActivityName() + "_" + tree.getTreeStructureHash() + ".png";
+        ShellUtils2.execCommand(CommonUtil.ADB_PATH + "adb -s " + d.serial  +" shell screencap -p sdcard/" + picname);
+        ShellUtils2.execCommand(CommonUtil.ADB_PATH + "adb -s " + d.serial  +" pull sdcard/" + picname + " " + "output/" + ConnectUtil.launch_pkg + "/");
+        ShellUtils2.execCommand(CommonUtil.ADB_PATH + "adb -s " + d.serial  +" shell rm sdcard/" + picname);
+        if (UITree) storeTree(tree);
+    }
+
+    public static void storeTree(ViewTree tree){
+        String treeStr = SerializeUtil.toBase64(tree);
+
+        File dir = new File("output/" + ConnectUtil.launch_pkg);
+        if (!dir.exists())
+            dir.mkdir();
+        try {
+            String name = tree.getActivityName() + "_" + tree.getTreeStructureHash() + ".json";
+            File file = new File("output/" + ConnectUtil.launch_pkg + "/" + name);
+            FileWriter writer = new FileWriter(file);
+            writer.write(treeStr);
+            writer.close();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
     }
 
     public static void log(String info) {

@@ -17,18 +17,19 @@ public class DFGraphStrategy extends DepthFirstStrategy{
     @Override
     public Action select_action(Device d, ViewTree tree){
         //改为选择边进行遍历
-        Action action = null;
-        do {
-            action = this.graphAdjustor.getEdgeAction(tree);
+        Action action = this.graphAdjustor.getEdgeAction(d, tree);
+//        do {
+//            action = this.graphAdjustor.getAction(tree);
             //if (action != null) d.log("action: to " + action.target);
-            if (action == null) return action;
+//            if (action == null) return action;
 //            FragmentNode fragmentNode = graphAdjustor.appGraph.getFragment(action.target_activity, action.target_hash);
 //            if (fragmentNode != null) {
 //                int p = d.fragmentStack.getPosition(action.target_activity, action.target_hash, fragmentNode.get_Clickable_list());
 //                if (p == -1) break;
 //                else d.log(action.target + " in stack");
 //            }
-        }while(action != null);
+//        }while(action != null);
+
 
         return action;
     }

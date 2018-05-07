@@ -31,9 +31,10 @@ public class DepthFirstStrategy {
 
     public Decision make(int id, ViewTree currentTree, ViewTree newTree, Decision prev_decision, int response){
         Action new_action = null;
-        if (prev_decision.code == Decision.CODE.CONTINUE && response != Device.UI.SAME
-                && response != Device.UI.OUT)
-            update_graph(id, prev_decision, currentTree, newTree);
+        Device device = devices.get(id);
+
+        if (prev_decision.code == Decision.CODE.CONTINUE && response != Device.UI.SAME)
+            update_graph(device, prev_decision, currentTree, newTree, response);
 
         if (response == Device.UI.OUT)
             return new Decision(Decision.CODE.RESTART);
@@ -41,8 +42,6 @@ public class DepthFirstStrategy {
         if (prev_decision.code == Decision.CODE.SEQ && response != Device.UI.NEW)
             ErrorLog.put(new Tuple2<>(id, prev_decision.target_id), prev_decision.position);
 
-
-        Device device = devices.get(id);
         int top = device.fragmentStack.getSize() - 1;
 
         int p = device.fragmentStack.getPosition(newTree);
@@ -118,7 +117,7 @@ public class DepthFirstStrategy {
         return actions;
     }
 
-    public void update_graph(int id, Decision prev_decision, ViewTree currentTree, ViewTree newTree){
-        graphAdjustor.update(id, prev_decision.action, currentTree, newTree);
+    public void update_graph(Device d, Decision prev_decision, ViewTree currentTree, ViewTree newTree, int response){
+        graphAdjustor.update(d, prev_decision.action, currentTree, newTree, response);
     }
 }

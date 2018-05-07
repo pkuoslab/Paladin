@@ -12,6 +12,7 @@ public class Action implements Serializable{
     public int target_hash;
     public String target_activity;
     public String content;
+    public String intent;
     boolean list;
     int index;
 
@@ -25,6 +26,10 @@ public class Action implements Serializable{
         target_activity = activity;
         target_hash = hash;
         target = activity + "_" + hash;
+    }
+
+    public void setTarget(String target){
+        this.target = target;
     }
 
     public int getAction() {
@@ -46,6 +51,11 @@ public class Action implements Serializable{
         list = false;
         scroll = 0;
     }
+
+    public void setIntent(String intent){
+        this.intent = intent;
+    }
+
     public interface action_list {
         int CLICK   = 0;
         int LONGCLICK = 1;

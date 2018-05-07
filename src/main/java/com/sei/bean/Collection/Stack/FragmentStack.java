@@ -1,6 +1,7 @@
 package com.sei.bean.Collection.Stack;
 
 import com.sei.agent.Device;
+import com.sei.bean.Collection.Graph.FragmentNode;
 import com.sei.bean.Collection.Graph.GraphManager;
 import com.sei.bean.View.Action;
 import com.sei.bean.View.ViewTree;
@@ -46,6 +47,15 @@ public class FragmentStack {
                 return rfn;
         }
         return null;
+    }
+
+    public Boolean contains(String activity){
+        for (RuntimeFragmentNode runtimeFragmentNode: stack){
+            if (runtimeFragmentNode.activity.equals(activity))
+                return true;
+        }
+
+        return false;
     }
 
     public int getPosition(ViewTree tree){
@@ -120,8 +130,6 @@ public class FragmentStack {
                 }
             }
 
-            int tree_hash = tree.getTreeStructureHash();
-            int target_hash = stack.get(i+1).getStructure_hash();
             int position = getPosition(tree);
 
             if (position == i+1)

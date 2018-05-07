@@ -18,17 +18,13 @@ import static com.sei.util.CommonUtil.log;
 public class Control extends NanoHTTPD{
     public static HashMap<String, Handler> route_table = new HashMap<>();
     public static Scheduler scheduler;
+    List<Device> devices = new ArrayList<>();
 
 
     public static void main(String[] argv) {
         setListeningPort();
         Control server = new Control();
         server.set_route_table();
-        if (argv.length > 0)
-            scheduler = new Scheduler(argv[0]);
-        else
-            scheduler = new Scheduler("");
-
         server.configure(argv);
         System.out.println("listening on: " + DEFAULT_PORT);
         // WebviewService webviewService = new WebviewService();
@@ -94,6 +90,22 @@ public class Control extends NanoHTTPD{
             }
         });
 
+        register("/finish", new Handler() {
+            @Override
+            public Response onRequest(IHTTPSession session) {
+                // format: /finish?serial=xxx
+                String query = session.getQueryParameterString().substring(7);
+                for (Device d: devices){
+                    if (d.serial.equals(query)){
+                        if (d.Exit) return newFixedLengthResponse("yes");
+                        else return newFixedLengthResponse("no");
+                    }
+                }
+
+                return newFixedLengthResponse("unknown serial");
+            }
+        });
+
     }
 
     @Override
@@ -124,10 +136,10 @@ public class Control extends NanoHTTPD{
 
     void configure(String[] argv){
         String dir = "./";
-        File config = new File(dir + "config1.json");
+        File config = new File(dir + "config.json");
         if (!config.exists()) return;
         try {
-            String content = CommonUtil.readFromFile(dir + "config1.json");
+            String content = CommonUtil.readFromFile(dir + "config.json");
             JSONObject config_json = new JSONObject(content);
             if (config_json.has("ADB_PATH")){
                 log("ADB: " + config_json.getString("ADB_PATH"));
@@ -136,7 +148,11 @@ public class Control extends NanoHTTPD{
             String pkg = config_json.getString("PACKAGE");
             ConnectUtil.setUp(pkg);
             JSONArray device_config = config_json.getJSONArray("DEVICES");
-            List<Device> devices = new ArrayList<>();
+
+            if (argv.length > 0)
+                scheduler = new Scheduler(argv[0]);
+            else
+                scheduler = new Scheduler("");
 
             for(int i=0; i < device_config.length(); i++){
                 JSONObject c = device_config.getJSONObject(i);
