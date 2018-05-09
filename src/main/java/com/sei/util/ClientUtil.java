@@ -12,6 +12,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.parser.Parser;
 import org.jsoup.select.Elements;
 
+import java.lang.reflect.Method;
 import java.net.ConnectException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -28,8 +29,14 @@ import static com.sei.util.CommonUtil.log;
 public class ClientUtil{
 
     public static void main(String[] argv){
-        Device d = new Device("", 6161, "4d000ff73f0c6001", "com.tencent.mm", "monkeymonkey");
-        System.out.println(getTopActivityName(d));
+        //System.out.println(System.getProperty("user.dir"));
+        try {
+            Class<?> clzz = Class.forName(ClientUtil.class.getName());
+            Method method = clzz.getMethod("test", null);
+            method.invoke(null, null);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
     }
 
     public static void record(String ins, int test_case){
@@ -37,6 +44,10 @@ public class ClientUtil{
 //            ConnectUtil.sendInstruction("record", "start;" + test_case);
 //        else if (ins.equals("stop"))
 //            ConnectUtil.sendInstruction(ConnectUtil.launch_pkg, "record", "stop");
+    }
+
+    public static void test(){
+        System.out.println("this is reflection test");
     }
 
     public static int execute_action(Device d, int code, String path){
@@ -110,6 +121,16 @@ public class ClientUtil{
 
         tree = (ViewTree) SerializeUtil.toObject(treeStr, ViewTree.class);
         tree.setActivityName(getTopActivityName(d));
+        return tree;
+    }
+
+    public static ViewTree getCurrentTreeWithUA(Device d){
+        String command = CommonUtil.ADB_PATH + "adb -s " + d.serial + " shell uiautomator dump /sdcard/view.xml";
+        ShellUtils2.execCommand(command);
+        String xml = "view-" + d.serial + ".xml";
+        ShellUtils2.execCommand(CommonUtil.ADB_PATH + "adb -s " + d.serial  + " pull /sdcard/view.xml " + CommonUtil.DIR + xml);
+        String content = CommonUtil.readFromFile(CommonUtil.DIR + xml);
+        ViewTree tree = new ViewTree(d, content);
         return tree;
     }
 
@@ -304,7 +325,7 @@ public class ClientUtil{
             ViewTree tree = getTree(d);
             if (tree == null || tree.root == null) break;
 
-            List<ViewNode> nodes = tree.get_clickable_nodes();
+            List<ViewNode> nodes = tree.fetch_clickable_nodes();
             for(ViewNode node : nodes){
                 if (node.getViewTag().contains("Button") &&
                         (node.getViewText().contains("Allow") || node.getViewText().contains("允许"))) {
@@ -331,7 +352,7 @@ public class ClientUtil{
 
     public static Boolean login(Device d, ViewTree tree){
         Boolean SUCCESS = false;
-        List<ViewNode> nodes = tree.get_clickable_nodes();
+        List<ViewNode> nodes = tree.fetch_clickable_nodes();
         for(ViewNode node : nodes){
             if (node.getViewTag().contains("EditText")){
                 int x = node.getX() + node.getWidth() / 2;

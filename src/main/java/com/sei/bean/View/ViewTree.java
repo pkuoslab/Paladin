@@ -1,6 +1,20 @@
 package com.sei.bean.View;
 
+import com.sei.agent.Device;
+import com.sei.util.ClientUtil;
+import com.sei.util.CommonUtil;
+import com.sei.util.SerializeUtil;
+import com.sei.util.ViewUtil;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.parser.Parser;
+import org.jsoup.select.Elements;
+
+import java.io.File;
+import java.io.FileWriter;
 import java.io.Serializable;
+import java.sql.ClientInfoStatus;
 import java.util.*;
 
 import static com.sei.util.CommonUtil.log;
@@ -20,8 +34,122 @@ public class ViewTree implements Serializable {
     public int relativeCount;
     public String activityName;
     String html_nodes = "";
+    static String[] filtsBys = new String[]{"AbsListView", "GridView", "RecyclerView"};
+
+    public static void main(String[] args){
+        String content = CommonUtil.readFromFile("view.xml");
+        Device d =  new Device("http://127.0.0.1:6161", 6161, "abc", "com.tencent.mm", "monkey");
+        ViewTree tree = new ViewTree(d, content);
+        System.out.println(tree.treeStructureHash);
+        String treeStr = SerializeUtil.toBase64(tree);
+        try{
+            File file = new File("tree.json");
+            FileWriter fileWriter = new FileWriter(file);
+            fileWriter.write(treeStr);
+            fileWriter.close();
+
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+
+    }
 
     public ViewTree() {
+    }
+
+    public ViewTree(Device d, String xml){
+        Document doc = Jsoup.parse(xml, "", Parser.xmlParser());
+        Element startNode = doc.child(0).child(0);
+        root = construct(startNode, 0, null);
+        //activityName = ClientUtil.getTopActivityName(d);
+        totalViewCount = root.total_view;
+        treeStructureHash = root.getNodeRelateHash();
+        getClickable_list();
+    }
+
+    ViewNode construct(Element rootView, int depth, ViewNode par){
+        ViewNode now = new ViewNode();
+
+        now.clickable = Boolean.parseBoolean(rootView.attr("clickable")) ||
+                Boolean.parseBoolean(rootView.attr("long-clickable")) ||
+                Boolean.parseBoolean(rootView.attr("enabled"));
+        now.setResourceID(rootView.attr("resource-id"));
+        now.setDepth(depth);
+        List<Integer> coordinates = parse_coordinates(rootView.attr("bounds"));
+        now.setX(coordinates.get(0));
+        now.setY(coordinates.get(2));
+        now.setWidth(coordinates.get(1)-coordinates.get(0));
+        now.setHeight(coordinates.get(3)-coordinates.get(2));
+        now.setViewTag(rootView.attr("class"));
+        now.setContentDesc(rootView.attr("content-desc"));;
+        now.setParent(par);
+        if (par != null)
+            now.xpath = par.xpath + "/" + ViewUtil.getLast(rootView.attr("class"));
+        else
+            now.xpath = ViewUtil.getLast(rootView.attr("class"));
+
+        if (rootView.attr("class").contains("TextView")){
+            now.setViewText(rootView.attr("text"));
+        }else
+            now.setViewText("");
+
+        now.total_view = 1;
+        String relate_hash_string = now.calStringWithoutPosition();
+        Elements children = rootView.children();
+        List<ViewNode> child_list = new ArrayList<>();
+        for(Element child: children){
+            ViewNode child_node = construct(child, depth+1, now);
+            if (child_node == null) continue;
+            child_list.add(child_node);
+            now.total_view += child_node.total_view;
+        }
+
+        if (child_list.size() > 0){
+            Collections.sort(child_list);
+            boolean isListNode = isList(rootView);
+            List<Integer> cnt = new ArrayList<>();
+            int ccnt = 0;
+            for(ViewNode childNode: child_list) {
+                int id = childNode.getNodeRelateHash();
+                if (cnt.contains(id))
+                    ++ccnt;
+                else{
+                    cnt.add(id);
+                    relate_hash_string += id;
+                }
+            }
+            if (!isListNode && ccnt > child_list.size() * 2 / 3)
+                isListNode = true;
+            now.isList = isListNode;
+            now.setChildren(child_list);
+        }
+        now.setNodeRelateHash(relate_hash_string.hashCode());
+        return now;
+    }
+
+    public boolean isList(Element view){
+        String className = view.attr("class");
+        boolean beFiltered = false;
+        for(int i=0; i < filtsBys.length; i++){
+            beFiltered = (beFiltered || className.contains(filtsBys[i]));
+            if (beFiltered)
+                return true;
+
+        }
+        return beFiltered;
+    }
+
+    public List<Integer> parse_coordinates(String bounds){
+        int x1 = Integer.parseInt(bounds.substring(1, bounds.indexOf(",")));
+        int x2 = Integer.parseInt(bounds.substring(bounds.lastIndexOf("[")+1, bounds.lastIndexOf(",")));
+        int y1 = Integer.parseInt(bounds.substring(bounds.indexOf(",")+1, bounds.indexOf("]")));
+        int y2 = Integer.parseInt(bounds.substring(bounds.lastIndexOf(",")+1, bounds.lastIndexOf("]")));
+        List<Integer> coordinates = new ArrayList<>();
+        coordinates.add(x1);
+        coordinates.add(x2);
+        coordinates.add(y1);
+        coordinates.add(y2);
+        return coordinates;
     }
 
     public String getActivityName() {
@@ -109,7 +237,7 @@ public class ViewTree implements Serializable {
         return tot;
     }
 
-    public List<ViewNode> get_clickable_nodes(){
+    public List<ViewNode> fetch_clickable_nodes(){
         ArrayList<String> list = new ArrayList<>();
         ArrayList<ViewNode> stack = new ArrayList<>();
         ArrayList<ViewNode> clickable_nodes = new ArrayList<>();

@@ -48,7 +48,8 @@ public class ViewNode implements Serializable, Comparable{
     private int viewNodeID;
     private int viewNodeIDRelative;
 
-    public int resourceID;
+    public String resourceID;
+    public String contentDesc;
 
     private int width;
     private int height;
@@ -67,8 +68,8 @@ public class ViewNode implements Serializable, Comparable{
         this.viewText = viewText;
     }
 
-    public void setResourceID(int id){this.resourceID = id;}
-    public int getResourceID(){return this.resourceID;}
+    public void setResourceID(String id){this.resourceID = id;}
+    public String getResourceID(){return this.resourceID;}
 
     public int getNodeHash() {
         return nodeHash;
@@ -153,6 +154,9 @@ public class ViewNode implements Serializable, Comparable{
     public void setY(int y) {
         this.y = y;
     }
+
+    public String getContentDesc(){return this.contentDesc;}
+    public void setContentDesc(String contentDesc){this.contentDesc=contentDesc;}
 
     //返回的是class+深度+位置
     public String calString(){
