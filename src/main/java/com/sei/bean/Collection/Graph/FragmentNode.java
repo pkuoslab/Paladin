@@ -88,6 +88,7 @@ public class FragmentNode {
                         edit_fields.add(xpath + "#" + ser);
                 }
             }
+            path_list.add("menu");
         }
     }
 

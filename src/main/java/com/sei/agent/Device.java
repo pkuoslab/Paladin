@@ -11,6 +11,7 @@ import com.sei.server.component.Scheduler;
 import com.sei.util.ClientUtil;
 import com.sei.util.CommonUtil;
 import com.sei.util.ConnectUtil;
+import sun.misc.Cleaner;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -102,14 +103,17 @@ public class Device extends Thread{
         int response = UI.OUT;
         if (decision.code == Decision.CODE.CONTINUE) {
             Action action = decision.action;
-            response = ClientUtil.execute_action(this, Action.action_list.CLICK, action.getPath());
+            //response = ClientUtil.execute_action(this, action.getAction(), action.getPath());
             //如果是输入框，先点击获得焦点再输入
             if (action.getAction() == Action.action_list.ENTERTEXT) {
+                response = ClientUtil.execute_action(this, Action.action_list.CLICK, action.getPath());
                 if (response == UI.SAME)
                     response = ClientUtil.execute_action(this, Action.action_list.ENTERTEXT, "test");
                 else
                     action.setAction(Action.action_list.CLICK);
-            }
+            }else
+                response = ClientUtil.execute_action(this, action.getAction(), action.getPath());
+
             if (response != UI.SAME && response != UI.OUT) {
                 if (update_stack(action) == UI.OUT) response = UI.OUT;
             }
@@ -120,6 +124,8 @@ public class Device extends Thread{
             Exit = true;
         }else if (decision.code == Decision.CODE.RESTART || decision.code == Decision.CODE.GO){
             if (decision.code == Decision.CODE.RESTART) {
+                if(try_back()) return UI.NEW;
+
                 log("need restart stack size: " + fragmentStack.getSize());
                 enter();
             }
@@ -130,6 +136,16 @@ public class Device extends Thread{
         }
 
         return response;
+    }
+
+    public Boolean try_back(){
+        log("try back");
+        ClientUtil.goBack(this);
+        String f = ClientUtil.getForeground(this);
+        if (f.contains(ConnectUtil.launch_pkg) && getCurrentTree() != null)
+            return true;
+        else
+            return false;
     }
 
     public int execute_actions(Decision decision){

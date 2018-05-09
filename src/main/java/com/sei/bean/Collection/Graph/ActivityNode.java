@@ -86,7 +86,6 @@ public class ActivityNode {
                 fc.interpaths = vc.interpaths;
                 fc.intrapaths = vc.intrapaths;
                 fc.menuClicked = vc.menuClicked;
-                fc.path_list = vc.path_list;
                 fragments.add(fc);
                 return fc;
             }

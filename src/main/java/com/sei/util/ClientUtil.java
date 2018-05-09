@@ -50,6 +50,10 @@ public class ClientUtil{
                 action = "enterText";
                 trans = path;
                 break;
+            case Action.action_list.MENU:
+                action = "menu";
+                trans = "";
+                break;
         }
         String s =  ConnectUtil.sendInstruction(d, "execute_action", action + ";" + trans);
         return checkStatus(d, s);
@@ -248,27 +252,18 @@ public class ClientUtil{
                 }else
                     return Device.UI.OUT;
 
-            }else if (pkg.contains("camera")){
-                goBack(d);
-                pkg = getForeground(d);
-                if (pkg.contains("camera")) stopApp(d, pkg);
-
-                pkg = getForeground(d);
-                if (pkg.contains(ConnectUtil.prefix) && getCurrentTree(d) != null)
-                    return Device.UI.NEW;
-                else
-                    return Device.UI.OUT;
             }else{
-                goBack(d);
-                pkg = getForeground(d);
-                if (!pkg.contains(ConnectUtil.prefix)){
-                    goBack(d);
-                    pkg = getForeground(d);
-                }
-                if (pkg.contains(ConnectUtil.prefix) && getCurrentTree(d) != null)
-                    return Device.UI.NEW;
-                else
-                    return Device.UI.OUT;
+//                goBack(d);
+//                pkg = getForeground(d);
+//                if (!pkg.contains(ConnectUtil.prefix)){
+//                    goBack(d);
+//                    pkg = getForeground(d);
+//                }
+//                if (pkg.contains(ConnectUtil.prefix) && getCurrentTree(d) != null)
+//                    return Device.UI.NEW;
+//                else
+//                    return Device.UI.OUT;
+                return Device.UI.OUT;
             }
         }
         return response;

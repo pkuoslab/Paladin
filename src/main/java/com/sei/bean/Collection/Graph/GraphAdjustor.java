@@ -170,6 +170,9 @@ public class GraphAdjustor extends UiTransition{
                 CommonUtil.getSnapshot(new_tree, d);
                 return UI.OLD_ACT_NEW_FRG;
             }else{
+                FragmentNode fragmentNode = actNode.find_Fragment(new_tree);
+                if (fragmentNode.path_index.size() == 0)
+                    CommonUtil.getSnapshot(new_tree, d);
                 log("device #" + id + ": old activity and old fragment " + name);
                 return UI.OLD_ACT_OLD_FRG;
             }
@@ -269,14 +272,15 @@ public class GraphAdjustor extends UiTransition{
         Action action = null;
         if (currentNode.path_index.size() < currentNode.path_list.size()) {
             int ser = CommonUtil.shuffle(currentNode.path_index, currentNode.path_list.size());
+
             currentNode.path_index.add(ser);
             String path = currentNode.path_list.get(ser);
             if (currentNode.edit_fields.contains(path)) {
                 action = new Action(path, Action.action_list.ENTERTEXT);
-            }else {
+            }else if (path.equals("menu")){
+                action = new Action(path, Action.action_list.MENU);
+            }else
                 action = new Action(path, Action.action_list.CLICK);
-            }
-
         }else
             currentNode.setTraverse_over(true);
         return action;
