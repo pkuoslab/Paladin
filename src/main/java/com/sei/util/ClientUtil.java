@@ -5,6 +5,7 @@ import com.sei.agent.Device;
 import com.sei.bean.View.Action;
 import com.sei.bean.View.ViewNode;
 import com.sei.bean.View.ViewTree;
+import com.sei.util.client.ClientAdaptor;
 import jdk.nashorn.tools.Shell;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -29,14 +30,6 @@ import static com.sei.util.CommonUtil.log;
 public class ClientUtil{
 
     public static void main(String[] argv){
-        //System.out.println(System.getProperty("user.dir"));
-        try {
-            Class<?> clzz = Class.forName(ClientUtil.class.getName());
-            Method method = clzz.getMethod("test", null);
-            method.invoke(null, null);
-        }catch (Exception e){
-            e.printStackTrace();
-        }
     }
 
     public static void record(String ins, int test_case){
@@ -50,7 +43,7 @@ public class ClientUtil{
         System.out.println("this is reflection test");
     }
 
-    public static int execute_action(Device d, int code, String path){
+    public static int execute_action(Device d, int code, ViewTree tree, String path){
         String trans = URLEncoder.encode(path);
         String action = "";
         switch (code){
@@ -65,22 +58,12 @@ public class ClientUtil{
                 action = "menu";
                 trans = "";
                 break;
-        }
-        String s =  ConnectUtil.sendInstruction(d, "execute_action", action + ";" + trans);
-        return checkStatus(d, s);
-    }
-
-    public static int execute_action(Device d, int code){
-        String action = "";
-        switch (code){
             case Action.action_list.BACK:
                 action = "back";
-                break;
-            case Action.action_list.MENU:
-                action = "menu";
+                trans = "";
                 break;
         }
-        String s =  ConnectUtil.sendInstruction(d, "execute_action", action + ";");
+        String s =  ConnectUtil.sendInstruction(d, "execute_action", action + ";" + trans);
         return checkStatus(d, s);
     }
 
@@ -124,16 +107,6 @@ public class ClientUtil{
         return tree;
     }
 
-    public static ViewTree getCurrentTreeWithUA(Device d){
-        String command = CommonUtil.ADB_PATH + "adb -s " + d.serial + " shell uiautomator dump /sdcard/view.xml";
-        ShellUtils2.execCommand(command);
-        String xml = "view-" + d.serial + ".xml";
-        ShellUtils2.execCommand(CommonUtil.ADB_PATH + "adb -s " + d.serial  + " pull /sdcard/view.xml " + CommonUtil.DIR + xml);
-        String content = CommonUtil.readFromFile(CommonUtil.DIR + xml);
-        ViewTree tree = new ViewTree(d, content);
-        return tree;
-    }
-
     public static ViewTree getTree(Device d){
         String treeStr = ConnectUtil.sendInstruction(d, "getTree", "");
         ViewTree tree = (ViewTree) SerializeUtil.toObject(treeStr, ViewTree.class);
@@ -141,111 +114,23 @@ public class ClientUtil{
     }
 
     public static String getForeground(Device device){
-        String command = CommonUtil.ADB_PATH + "adb -s " + device.serial + " shell dumpsys activity activities";
-        ShellUtils2.CommandResult commandResult = ShellUtils2.execCommand(command);
-        String dumpInfo = commandResult.successMsg;
-        Pattern p = Pattern.compile("ProcessRecord\\{.*\\}");
-        Matcher m = p.matcher(dumpInfo);
-        String result = "";
-        if (m.find()){
-            result = m.group(0);
-            int start = result.indexOf(":");
-            int stop = result.indexOf("/");
-            result = result.substring(start + 1, stop);
-        }
-
-        return result;
+        return ClientAdaptor.getForeground(device);
     }
 
     public static void handleAppNotRespond(Device d){
-        String command = CommonUtil.ADB_PATH + "adb -s " + d.serial + " shell uiautomator dump /sdcard/view.xml";
-        ShellUtils2.execCommand(command);
-        String xml = "view-" + d.serial + ".xml";
-        ShellUtils2.execCommand(CommonUtil.ADB_PATH + "adb -s " + d.serial  + " pull /sdcard/view.xml " + CommonUtil.DIR + xml);
-        String content = CommonUtil.readFromFile(CommonUtil.DIR + xml);
-        d.log("handle app not responding");
-        List<Integer> coords = parse_coordinate(CommonUtil.DIR + xml);
-        if (coords.size() == 2){
-            command = CommonUtil.ADB_PATH + "adb -s " + d.serial + " shell input tap " + coords.get(0) + " " + coords.get(1);
-            ShellUtils2.execCommand(command);
-        }
-        return;
+        ClientAdaptor.handleAppNotRespond(d);
     }
 
     public static List<Integer> parse_coordinate(String xml_path){
-        String content = CommonUtil.readFromFile(xml_path);
-        Document doc = Jsoup.parse(content, "", Parser.xmlParser());
-        Elements elements = doc.getElementsByAttributeValue("resource-id", "android:id/aerr_close");
-        List<Integer> coords = new ArrayList<>();
-        for(Element element : elements){
-            String vstr = element.attr("bounds");
-            // [x1, y1][x2, y2]
-            int x1 = Integer.parseInt(vstr.substring(1, vstr.indexOf(",")));
-            int x2 = Integer.parseInt(vstr.substring(vstr.lastIndexOf("[")+1, vstr.lastIndexOf(",")));
-            int y1 = Integer.parseInt(vstr.substring(vstr.indexOf(",")+1, vstr.indexOf("]")));
-            int y2 = Integer.parseInt(vstr.substring(vstr.lastIndexOf(",")+1, vstr.lastIndexOf("]")));
-            coords.add((x1 + x2)/2);
-            coords.add((y1 + y2)/2);
-            return coords;
-        }
-        return coords;
+        return ClientAdaptor.parse_coordinate(xml_path);
     }
 
     public static Boolean checkRespond(Device d){
-        String command = CommonUtil.ADB_PATH + "adb -s " + d.serial + " shell dumpsys window windows | grep 'Not Responding' | wc -l";
-        ShellUtils2.CommandResult commandResult = ShellUtils2.execCommand(command);
-        String dumpInfo = commandResult.successMsg;
-        try {
-            int num = Integer.parseInt(dumpInfo);
-            if (num > 0) return false;
-            else return true;
-        }catch (Exception e){
-            return true;
-        }
+        return ClientAdaptor.checkRespond(d);
     }
 
     public static String getTopActivityName(Device device){
-        try {
-            String command = CommonUtil.ADB_PATH + "adb -s " + device.serial + " shell dumpsys window windows | grep mCurrentFocus";
-            ShellUtils2.CommandResult commandResult = ShellUtils2.execCommand(command);
-            String dumpInfo = commandResult.successMsg;
-            String result;
-            int start = dumpInfo.lastIndexOf(".");
-            int stop = dumpInfo.indexOf("}");
-            if (start == -1 || stop == -1){
-                CommonUtil.sleep(2000);
-                commandResult = ShellUtils2.execCommand(command);
-                dumpInfo = commandResult.successMsg;
-                start = dumpInfo.lastIndexOf(".");
-                stop = dumpInfo.indexOf("}");
-            }
-
-            if (dumpInfo.contains(ConnectUtil.launch_pkg))
-                result = dumpInfo.substring(start+1, stop);
-            else{
-                command = CommonUtil.ADB_PATH + "adb -s " + device.serial + " shell dumpsys window windows | grep mFocusedApp";
-                commandResult = ShellUtils2.execCommand(command);
-                start = commandResult.successMsg.lastIndexOf(".");
-                stop = commandResult.successMsg.lastIndexOf(" ");
-                result = commandResult.successMsg.substring(start+1, stop);
-            }
-
-//            if (dumpInfo.contains(".")) {
-//                int start = dumpInfo.lastIndexOf(".");
-//                int stop = dumpInfo.lastIndexOf(" ");
-//                result = dumpInfo.substring(start + 1, stop);
-//            } else {
-//                command = CommonUtil.ADB_PATH + "adb -s " + device.serial + " shell dumpsys window windows | grep mCurrentFocus";
-//                dumpInfo = ShellUtils2.execCommand(command).successMsg;
-//                int start = dumpInfo.lastIndexOf(".");
-//                int stop = dumpInfo.indexOf("}");
-//                result = dumpInfo.substring(start + 1, stop);
-//            }
-            return result;
-        }catch (Exception e){
-            e.printStackTrace();
-            throw e;
-        }
+        return ClientAdaptor.getTopActivityName(device);
     }
 
     public static int checkStatus(Device d, String status){
@@ -290,30 +175,6 @@ public class ClientUtil{
         return response;
     }
 
-    public static void goBack(Device d){
-        String command = CommonUtil.ADB_PATH + "adb -s " + d.serial + " shell input keyevent 4";
-        ShellUtils2.execCommand(command);
-        CommonUtil.sleep(1000);
-    }
-//    public static String getSerIntent(){
-//        String intentStr = ConnectUtil.sendInstruction("getIntent", "");
-//        return intentStr;
-//    }
-
-    public static void startApp(Device d, String pkg){
-        String command = CommonUtil.ADB_PATH + "adb -s " + d.serial + " shell monkey -p " + pkg + " -c android.intent.category.LAUNCHER 1";
-        ShellUtils2.execCommand(command);
-        CommonUtil.sleep(8000);
-        d.current_pkg = pkg;
-    }
-
-    public static void stopApp(Device d, String pkg){
-        String command = CommonUtil.ADB_PATH + "adb -s " + d.serial + " shell am force-stop " + pkg;
-        ShellUtils2.execCommand(command);
-        CommonUtil.sleep(5000);
-    }
-
-
     public static Boolean checkPermission(Device d){
         Boolean checked = false;
 
@@ -342,7 +203,7 @@ public class ClientUtil{
 
         f = getForeground(d);
         if (!checked && f.contains("packageinstaller")){
-            goBack(d);
+            ClientAdaptor.goBack(d);
         }
 
         ConnectUtil.force_stop("com.android.packageinstaller");

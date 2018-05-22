@@ -1,12 +1,15 @@
 package com.sei.util;
 
+import com.alibaba.fastjson.JSONObject;
 import com.sei.agent.Device;
 import com.sei.bean.Collection.Graph.AppGraph;
 import com.sei.bean.View.ViewTree;
 import okhttp3.*;
-import org.json.JSONObject;
+
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStreamWriter;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.HashMap;
@@ -38,7 +41,7 @@ public class ConnectUtil {
         map.put("pkgName", d.current_pkg);
         map.put("method", method);
         map.put("arg", args);
-        String rq = d.ip + "/CMDManager?getMessage=" + SerializeUtil.toBase64(map);
+        String rq = d.ip + ":" + d.port +  "/CMDManager?getMessage=" + SerializeUtil.toBase64(map);
         return sendHttpGet(rq);
     }
 
@@ -62,6 +65,26 @@ public class ConnectUtil {
             //e.printStackTrace();
             return e.getMessage();
         }
+    }
+
+    public static String postJson(String request, JSONObject jo) throws Exception{
+        URL url = new URL(request);
+        HttpURLConnection con = (HttpURLConnection) url.openConnection();
+        con.setDoOutput(true);
+        con.setDoInput(true);
+        con.setRequestProperty("Content-Type", "application/json");
+        con.setRequestProperty("Accept", "application/json");
+        con.setRequestMethod("POST");
+
+        OutputStreamWriter wr = new OutputStreamWriter(con.getOutputStream());
+        wr.write(jo.toString());
+        wr.flush();
+
+        int HttpResult = con.getResponseCode();
+        if (HttpResult == HttpURLConnection.HTTP_OK)
+            return "Success";
+        else
+            return con.getResponseMessage();
     }
 
     public static void force_stop(String pkg){

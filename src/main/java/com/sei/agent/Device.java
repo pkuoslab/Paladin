@@ -8,10 +8,10 @@ import com.sei.bean.View.Action;
 import com.sei.bean.View.ViewTree;
 import com.sei.server.component.Decision;
 import com.sei.server.component.Scheduler;
-import com.sei.util.ClientUtil;
 import com.sei.util.CommonUtil;
 import com.sei.util.ConnectUtil;
-import sun.misc.Cleaner;
+import com.sei.util.client.ClientAdaptor;
+import com.sei.util.client.ClientAutomator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +24,7 @@ public class Device extends Thread{
     public String current_pkg;
     public FragmentStack fragmentStack;
     public int id;
-    ViewTree currentTree;
+    public ViewTree currentTree;
     Scheduler scheduler;
     GraphAdjustor graphAdjustor;
     public Boolean Exit;
@@ -45,6 +45,12 @@ public class Device extends Thread{
         this.password = password;
         LOGIN_SUCCESS = true;
         Exit = false;
+        try {
+            if (ClientAdaptor.type == ClientAdaptor.TYPE.UIAUTOMATOR)
+                ClientAutomator.init(this);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
     }
 
     public void bind(int id, Scheduler scheduler, GraphAdjustor graphAdjustor){
@@ -61,58 +67,60 @@ public class Device extends Thread{
     public void run(){
         ViewTree newTree;
         int response;
-        ClientUtil.startApp(this, ConnectUtil.launch_pkg);
-        if(ClientUtil.checkPermission(this)) enter();
-        currentTree = getCurrentTree();
-        if (currentTree == null) enter();
+        ClientAdaptor.startApp(this, ConnectUtil.launch_pkg);
+        try {
+            if (ClientAdaptor.checkPermission(this)) enter();
+            currentTree = getCurrentTree();
+            if (currentTree == null) enter();
 
-        if (checkLogin(currentTree)) currentTree = getCurrentTree();
+            if (checkLogin(currentTree)) currentTree = getCurrentTree();
 
-        if (fragmentStack == null) {
-            fragmentStack = new FragmentStack();
-            RuntimeFragmentNode rfn = new RuntimeFragmentNode(currentTree);
-            fragmentStack.add(rfn);
-        }else
-            recover_stack();
+            if (fragmentStack == null) {
+                fragmentStack = new FragmentStack();
+                RuntimeFragmentNode rfn = new RuntimeFragmentNode(currentTree);
+                fragmentStack.add(rfn);
+            } else
+                recover_stack();
 
-        Action action = null;
-        Decision decision = new Decision(Decision.CODE.CONTINUE, action);
-        decision = scheduler.update(id, currentTree, currentTree, decision, UI.NEW);
-        response = execute_decision(decision);
-        do{
-            if ((decision.code != Decision.CODE.CONTINUE ||
-                    response != UI.SAME) && response != UI.OUT) {
-                newTree = getCurrentTree();
-                if (newTree == null) response = UI.OUT;
-            }else
-                newTree = currentTree;
-
-            decision = scheduler.update(id, currentTree, newTree, decision, response);
-            currentTree = newTree;
+            Action action = null;
+            Decision decision = new Decision(Decision.CODE.CONTINUE, action);
+            decision = scheduler.update(id, currentTree, currentTree, decision, UI.NEW);
             response = execute_decision(decision);
-        }while(Exit == false);
+            do {
+                if ((decision.code != Decision.CODE.CONTINUE ||
+                        response != UI.SAME) && response != UI.OUT) {
+                    newTree = getCurrentTree();
+                    if (newTree == null) response = UI.OUT;
+                } else
+                    newTree = currentTree;
 
+                decision = scheduler.update(id, currentTree, newTree, decision, response);
+                currentTree = newTree;
+                response = execute_decision(decision);
+            } while (Exit == false);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
     }
 
-    public ViewTree getCurrentTree(){
-        return ClientUtil.getCurrentTree(this);
+    public ViewTree getCurrentTree() throws Exception{
+        return ClientAdaptor.getCurrentTree(this);
     }
 
 
-    public int execute_decision(Decision decision){
+    public int execute_decision(Decision decision) throws Exception{
         int response = UI.OUT;
         if (decision.code == Decision.CODE.CONTINUE) {
             Action action = decision.action;
-            //response = ClientUtil.execute_action(this, action.getAction(), action.getPath());
             //如果是输入框，先点击获得焦点再输入
             if (action.getAction() == Action.action_list.ENTERTEXT) {
-                response = ClientUtil.execute_action(this, Action.action_list.CLICK, action.getPath());
+                response = ClientAdaptor.execute_action(this, Action.action_list.CLICK, currentTree, action.getPath());
                 if (response == UI.SAME)
-                    response = ClientUtil.execute_action(this, Action.action_list.ENTERTEXT, "test");
+                    response = ClientAdaptor.execute_action(this, Action.action_list.ENTERTEXT, currentTree, "test");
                 else
                     action.setAction(Action.action_list.CLICK);
             }else
-                response = ClientUtil.execute_action(this, action.getAction(), action.getPath());
+                response = ClientAdaptor.execute_action(this, action.getAction(), currentTree, action.getPath());
 
             if (response != UI.SAME && response != UI.OUT) {
                 if (update_stack(action) == UI.OUT) response = UI.OUT;
@@ -138,23 +146,24 @@ public class Device extends Thread{
         return response;
     }
 
-    public Boolean try_back(){
+    public Boolean try_back() throws Exception{
         log("try back");
-        ClientUtil.goBack(this);
-        String f = ClientUtil.getForeground(this);
+        ClientAdaptor.goBack(this);
+        String f = ClientAdaptor.getForeground(this);
         if (f.contains(ConnectUtil.launch_pkg) && getCurrentTree() != null)
             return true;
         else
             return false;
     }
 
-    public int execute_actions(Decision decision){
+    public int execute_actions(Decision decision) throws Exception{
         int response = UI.OUT;
         List<Action> actions = decision.actions;
         List<RuntimeFragmentNode> rfn_cache = new ArrayList<>();
+        ViewTree tree = currentTree;
         for(Action action: actions){
-            ClientUtil.execute_action(this, action.getAction(), action.getPath());
-            ViewTree tree = getCurrentTree();
+            ClientAdaptor.execute_action(this, action.getAction(), tree, action.getPath());
+            tree = getCurrentTree();
             if (tree == null) return UI.OUT;
             RuntimeFragmentNode rfn = new RuntimeFragmentNode(tree);
 
@@ -185,7 +194,7 @@ public class Device extends Thread{
         return UI.NEW;
     }
 
-    public int update_stack(Action action){
+    public int update_stack(Action action) throws Exception{
         ViewTree tree = getCurrentTree();
         if (tree == null) return UI.OUT;
         if (checkLogin(tree)) tree = getCurrentTree();
@@ -203,7 +212,7 @@ public class Device extends Thread{
         return 1;
     }
 
-    public int recover_stack(){
+    public int recover_stack() throws Exception{
         //currentTree = getCurrentTree();
         if (currentTree == null)
             return UI.OUT;
@@ -224,11 +233,11 @@ public class Device extends Thread{
             return UI.OUT;
     }
 
-    int go_back(int limit){
+    int go_back(int limit) throws Exception{
         int t = 0;
 
         do{
-            int response = ClientUtil.execute_action(this, Action.action_list.BACK);
+            int response = ClientAdaptor.execute_action(this, Action.action_list.BACK, currentTree, "");
             if (response == UI.OUT) return UI.OUT;
             currentTree = getCurrentTree();
             if (currentTree == null) return UI.OUT;
@@ -242,7 +251,7 @@ public class Device extends Thread{
                 log("Back to unknown position, try skip");
                 Action action = graphAdjustor.getInterPathAction(this, currentTree);
                 if (action != null && t < limit) {
-                    ClientUtil.execute_action(this, Action.action_list.CLICK, action.path);
+                    ClientAdaptor.execute_action(this, Action.action_list.CLICK, currentTree, action.path);
                 }else{
                     t += 1;
                     continue;
@@ -260,9 +269,9 @@ public class Device extends Thread{
         return UI.OUT;
     }
 
-    Boolean restart(){
-        ClientUtil.stopApp(this, ConnectUtil.launch_pkg);
-        ClientUtil.startApp(this, ConnectUtil.launch_pkg);
+    Boolean restart() throws Exception{
+        ClientAdaptor.stopApp(this, ConnectUtil.launch_pkg);
+        ClientAdaptor.startApp(this, ConnectUtil.launch_pkg);
         currentTree = getCurrentTree();
 
         int limit = 3;
@@ -281,7 +290,7 @@ public class Device extends Thread{
             return true;
     }
 
-    void enter(){
+    void enter() throws Exception{
 
         int p = -1;
         int t = 0;
@@ -313,11 +322,11 @@ public class Device extends Thread{
         }
     }
 
-    public Boolean checkLogin(ViewTree tree){
+    public Boolean checkLogin(ViewTree tree) throws Exception{
         Boolean success = false;
         if (tree == null) return success;
         if (tree.getActivityName().contains("LoginPasswordUI") && LOGIN_SUCCESS) {
-            success = ClientUtil.login(this, tree);
+            success = ClientAdaptor.login(this, tree);
             LOGIN_SUCCESS = success;
         }
         return success;

@@ -136,10 +136,10 @@ public class Control extends NanoHTTPD{
 
     void configure(String[] argv){
         String dir = "./";
-        File config = new File(dir + "config.json");
+        File config = new File(dir + "config1.json");
         if (!config.exists()) return;
         try {
-            String content = CommonUtil.readFromFile(dir + "config.json");
+            String content = CommonUtil.readFromFile(dir + "config1.json");
             JSONObject config_json = new JSONObject(content);
             if (config_json.has("ADB_PATH")){
                 log("ADB: " + config_json.getString("ADB_PATH"));
@@ -163,7 +163,7 @@ public class Control extends NanoHTTPD{
 
                 if (ip.contains("127.0.0.1"))
                     ShellUtils2.execCommand("adb -s " + serial + " forward tcp:" + c.getInt("PORT") + " tcp:6161");
-                Device d = new Device(ip + ":" + c.getInt("PORT"), c.getInt("PORT"), serial, pkg, pass);
+                Device d = new Device(ip, c.getInt("PORT"), serial, pkg, pass);
                 devices.add(d);
                 scheduler.bind(d);
             }

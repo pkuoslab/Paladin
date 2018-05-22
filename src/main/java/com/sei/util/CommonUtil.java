@@ -2,6 +2,7 @@ package com.sei.util;
 
 import com.sei.agent.Device;
 import com.sei.bean.View.ViewTree;
+import com.sei.util.client.ClientAdaptor;
 import jdk.jfr.events.ExceptionThrownEvent;
 
 import java.io.BufferedReader;
@@ -22,10 +23,13 @@ public class CommonUtil {
     public static double SIMILARITY = 0.9;
     public static String DIR = "";
     public static String ADB_PATH = "/home/mike/Android/Sdk/platform-tools/";
-    public static Boolean SCREENSHORT = true;
+    public static Boolean SCREENSHORT = false;
     public static Boolean UITree = true;
+    public static Boolean INTENT = false;
     public static String SERIAL = "";
     public static Random random = new Random(1100); //trail : 259
+    public static int screen_x = 720;
+    public static int screen_y = 1280;
 
 
     public static void main(String[] argv){
@@ -92,6 +96,10 @@ public class CommonUtil {
     public static void storeTree(ViewTree tree){
         String treeStr = SerializeUtil.toBase64(tree);
 
+        File dir1 = new File("output");
+        if (!dir1.exists())
+            dir1.mkdir();
+
         File dir = new File("output/" + ConnectUtil.launch_pkg);
         if (!dir.exists())
             dir.mkdir();
@@ -113,13 +121,13 @@ public class CommonUtil {
     }
 
     public static void start_paladin(Device d){
-        ClientUtil.stopApp(d, "ias.deepsearch.com.helper");
-        ClientUtil.stopApp(d, ConnectUtil.launch_pkg);
+        ClientAdaptor.stopApp(d, "ias.deepsearch.com.helper");
+        ClientAdaptor.stopApp(d, ConnectUtil.launch_pkg);
         CommonUtil.sleep(2000);
-        ClientUtil.startApp(d, "ias.deepsearch.com.helper");
+        ClientAdaptor.startApp(d, "ias.deepsearch.com.helper");
         ShellUtils2.execCommand(CommonUtil.ADB_PATH + "adb -s " + d.serial + " shell input keyevent KEYCODE_HOME");
         CommonUtil.sleep(2000);
-        ClientUtil.startApp(d, ConnectUtil.launch_pkg);
+        ClientAdaptor.startApp(d, ConnectUtil.launch_pkg);
         if (d.ip.contains("127.0.0.1"))
             ShellUtils2.execCommand(CommonUtil.ADB_PATH + "adb -s " + d.serial + " forward tcp:" + d.port + " tcp:6161");
     }

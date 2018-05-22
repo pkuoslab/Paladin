@@ -269,6 +269,7 @@ public class GraphAdjustor extends UiTransition{
 
     public Action getAction(ViewTree currentTree){
         FragmentNode currentNode = locate(currentTree);
+        //log("current node: " + currentNode.getSignature());
         Action action = null;
         if (currentNode.path_index.size() < currentNode.path_list.size()) {
             int ser = CommonUtil.shuffle(currentNode.path_index, currentNode.path_list.size());
@@ -323,6 +324,8 @@ public class GraphAdjustor extends UiTransition{
     }
 
     public String getSerIntent(Device d){
+        if (!CommonUtil.INTENT) return null;
+
         String record = ConnectUtil.sendHttpGet(d.ip + "/intent");
         int idx = record.indexOf("$");
         if (idx == -1) return null;

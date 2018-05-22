@@ -1,6 +1,8 @@
 package com.sei.util;
 
 import com.sei.bean.View.ViewNode;
+import com.sei.bean.View.ViewTree;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
@@ -93,6 +95,10 @@ public class ViewUtil {
         String xpath = path.substring(0, path.indexOf("#"));
         List<ViewNode> vl = getViewByXpath(node, xpath);
         int i = Integer.parseInt(path.substring(path.indexOf("#") + 1));
+        if (vl.size() < i+1) {
+            log("xpath: " + path + " can not locate node");
+            return null;
+        }
         ViewNode vn = vl.get(i);
         return vn;
     }

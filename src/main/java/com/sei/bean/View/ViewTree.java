@@ -5,6 +5,7 @@ import com.sei.util.ClientUtil;
 import com.sei.util.CommonUtil;
 import com.sei.util.SerializeUtil;
 import com.sei.util.ViewUtil;
+import com.sei.util.client.ClientAdaptor;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -36,32 +37,36 @@ public class ViewTree implements Serializable {
     String html_nodes = "";
     static String[] filtsBys = new String[]{"AbsListView", "GridView", "RecyclerView"};
 
-    public static void main(String[] args){
-        String content = CommonUtil.readFromFile("view.xml");
-        Device d =  new Device("http://127.0.0.1:6161", 6161, "abc", "com.tencent.mm", "monkey");
-        ViewTree tree = new ViewTree(d, content);
-        System.out.println(tree.treeStructureHash);
-        String treeStr = SerializeUtil.toBase64(tree);
-        try{
-            File file = new File("tree.json");
-            FileWriter fileWriter = new FileWriter(file);
-            fileWriter.write(treeStr);
-            fileWriter.close();
-
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-
-    }
+//    public static void main(String[] args){
+//        String content = CommonUtil.readFromFile("view.xml");
+//        Device d =  new Device("http://127.0.0.1:6161", 6161, "abc", "com.tencent.mm", "monkey");
+//        ViewTree tree = new ViewTree(d, content);
+//        System.out.println(tree.treeStructureHash);
+//        String treeStr = SerializeUtil.toBase64(tree);
+//        try{
+//            File file = new File("tree.json");
+//            FileWriter fileWriter = new FileWriter(file);
+//            fileWriter.write(treeStr);
+//            fileWriter.close();
+//
+//        }catch (Exception e){
+//            e.printStackTrace();
+//        }
+//    }
 
     public ViewTree() {
     }
 
     public ViewTree(Device d, String xml){
         Document doc = Jsoup.parse(xml, "", Parser.xmlParser());
+        if (doc.children().size() == 0) {
+            root = null;
+            return;
+        }
+
         Element startNode = doc.child(0).child(0);
         root = construct(startNode, 0, null);
-        //activityName = ClientUtil.getTopActivityName(d);
+        activityName = ClientAdaptor.getTopActivityName(d);
         totalViewCount = root.total_view;
         treeStructureHash = root.getNodeRelateHash();
         getClickable_list();

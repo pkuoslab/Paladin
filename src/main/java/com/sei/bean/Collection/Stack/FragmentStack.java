@@ -1,12 +1,11 @@
 package com.sei.bean.Collection.Stack;
 
 import com.sei.agent.Device;
-import com.sei.bean.Collection.Graph.FragmentNode;
-import com.sei.bean.Collection.Graph.GraphManager;
 import com.sei.bean.View.Action;
 import com.sei.bean.View.ViewTree;
-import com.sei.util.ClientUtil;
 import com.sei.util.CommonUtil;
+import com.sei.util.client.ClientAdaptor;
+import com.sei.util.client.ClientAutomator;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -100,30 +99,27 @@ public class FragmentStack {
         return null;
     }
 
-    public int recover(Device d, int start){
+    public int recover(Device d, int start) throws Exception{
         int response = Device.UI.OUT;
 
         int limits = 0;
+        ViewTree tree = d.currentTree;
         for(int i=start; i < stack.size()-1; i++){
             RuntimeFragmentNode rfn = stack.get(i);
             Action action = rfn.getAction();
             if (action.getAction() == Action.action_list.MENU)
-                ClientUtil.execute_action(d, action.getAction());
+                ClientAdaptor.execute_action(d, action.getAction(), tree, "");
             else if(action.getAction() == Action.action_list.ENTERTEXT) {
-                ClientUtil.execute_action(d, Action.action_list.CLICK, action.getPath());
-                ClientUtil.execute_action(d, Action.action_list.ENTERTEXT, action.getContent());
+                ClientAdaptor.execute_action(d, Action.action_list.CLICK, tree, action.getPath());
+                ClientAdaptor.execute_action(d, Action.action_list.ENTERTEXT, tree, action.getContent());
             }else
-                ClientUtil.execute_action(d, action.getAction(), action.getPath());
+                ClientAdaptor.execute_action(d, action.getAction(), tree, action.getPath());
 
-//            if (response == Device.UI.OUT) {
-//                d.log("out");
-//                return Device.UI.OUT;
-//            }
 
-            ViewTree tree = ClientUtil.getCurrentTree(d);
+            tree = ClientAutomator.getCurrentTree(d);
             if (tree == null) {
                 CommonUtil.sleep(2000);
-                tree = ClientUtil.getCurrentTree(d);
+                tree = ClientAdaptor.getCurrentTree(d);
                 if (tree == null) {
                     d.log("out");
                     return Device.UI.OUT;
