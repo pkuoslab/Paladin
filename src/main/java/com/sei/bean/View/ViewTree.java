@@ -78,6 +78,11 @@ public class ViewTree implements Serializable {
         now.clickable = Boolean.parseBoolean(rootView.attr("clickable")) ||
                 Boolean.parseBoolean(rootView.attr("long-clickable")) ||
                 Boolean.parseBoolean(rootView.attr("enabled"));
+        // not include native background view
+        if (rootView.attr("resource-id").contains("BarBackground")){
+            return null;
+        }
+
         now.setResourceID(rootView.attr("resource-id"));
         now.setDepth(depth);
         List<Integer> coordinates = parse_coordinates(rootView.attr("bounds"));
@@ -86,7 +91,7 @@ public class ViewTree implements Serializable {
         now.setWidth(coordinates.get(1)-coordinates.get(0));
         now.setHeight(coordinates.get(3)-coordinates.get(2));
         now.setViewTag(rootView.attr("class"));
-        now.setContentDesc(rootView.attr("content-desc"));;
+        now.setContentDesc(rootView.attr("content-desc"));
         now.setParent(par);
         if (par != null)
             now.xpath = par.xpath + "/" + ViewUtil.getLast(rootView.attr("class"));
@@ -100,6 +105,12 @@ public class ViewTree implements Serializable {
 
         now.total_view = 1;
         String relate_hash_string = now.calStringWithoutPosition();
+
+        // not include webview content
+        if (rootView.attr("class").contains("WebView")){
+            return now;
+        }
+
         Elements children = rootView.children();
         List<ViewNode> child_list = new ArrayList<>();
         for(Element child: children){

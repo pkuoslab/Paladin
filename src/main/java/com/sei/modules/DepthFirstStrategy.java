@@ -14,7 +14,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class DepthFirstStrategy {
+public class DepthFirstStrategy implements Strategy{
     GraphAdjustor graphAdjustor;
     List<Device> devices;
     //调度错误的日志

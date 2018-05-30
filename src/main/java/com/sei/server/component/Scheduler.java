@@ -9,6 +9,8 @@ import com.sei.bean.Collection.Tuple2;
 import com.sei.bean.View.ViewTree;
 import com.sei.modules.DFGraphStrategy;
 import com.sei.modules.DepthFirstStrategy;
+import com.sei.modules.ModelReplay;
+import com.sei.modules.Strategy;
 import com.sei.util.CommonUtil;
 import com.sei.util.SerializeUtil;
 
@@ -23,7 +25,7 @@ public class Scheduler {
     List<Device> devices;
     List<FragmentStack> stacks;
     public GraphAdjustor graphAdjustor;
-    DepthFirstStrategy strategy;
+    Strategy strategy;
 
     Map<Tuple2<Integer, Integer>, Integer> ErrorLog;
 
@@ -34,6 +36,8 @@ public class Scheduler {
         ErrorLog = new HashMap<>();
         if (argv.contains("-r")) {
             strategy = new DFGraphStrategy(graphAdjustor, devices);
+        }else if (argv.contains("-p")){
+            strategy = new ModelReplay(graphAdjustor, devices);
         }else
             strategy = new DepthFirstStrategy(graphAdjustor, devices);
     }

@@ -114,11 +114,13 @@ public class Device extends Thread{
             Action action = decision.action;
             //如果是输入框，先点击获得焦点再输入
             if (action.getAction() == Action.action_list.ENTERTEXT) {
+
                 response = ClientAdaptor.execute_action(this, Action.action_list.CLICK, currentTree, action.getPath());
-                if (response == UI.SAME)
+                if (response == UI.SAME) {
                     response = ClientAdaptor.execute_action(this, Action.action_list.ENTERTEXT, currentTree, "test");
-                else
+                }else {
                     action.setAction(Action.action_list.CLICK);
+                }
             }else
                 response = ClientAdaptor.execute_action(this, action.getAction(), currentTree, action.getPath());
 
@@ -150,10 +152,15 @@ public class Device extends Thread{
         log("try back");
         ClientAdaptor.goBack(this);
         String f = ClientAdaptor.getForeground(this);
-        if (f.contains(ConnectUtil.launch_pkg) && getCurrentTree() != null)
-            return true;
-        else
+        if (!f.contains(ConnectUtil.launch_pkg)){
             return false;
+        }
+        ViewTree tree = getCurrentTree();
+        if (tree == null || fragmentStack.getPosition(tree) == -1){
+            return false;
+        }else{
+            return true;
+        }
     }
 
     public int execute_actions(Decision decision) throws Exception{

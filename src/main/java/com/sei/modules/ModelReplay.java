@@ -1,9 +1,13 @@
 package com.sei.modules;
 
+import com.sei.agent.Device;
 import com.sei.bean.Collection.Graph.FragmentNode;
+import com.sei.bean.Collection.Graph.GraphAdjustor;
 import com.sei.bean.Collection.Graph.GraphManager;
 import com.sei.bean.Collection.Tuple2;
 import com.sei.bean.View.Action;
+import com.sei.bean.View.ViewTree;
+import com.sei.server.component.Decision;
 import com.sei.util.ClientUtil;
 import com.sei.util.CommonUtil;
 import com.sei.util.ConnectUtil;
@@ -14,27 +18,36 @@ import java.util.concurrent.CompletionException;
 
 import static com.sei.util.CommonUtil.log;
 
-public class ModelReplay extends Thread{
+public class ModelReplay implements Strategy{
     public volatile Boolean verify = false;
     FragmentNode start;
-    public GraphManager graphManager;
+    public GraphAdjustor graphAdjustor;
+    List<Device> devices;
     List<String> route_list;
     int test_case = 0;
 
-    public ModelReplay(GraphManager graphManager){
-        super();
-        this.graphManager = graphManager;
-        verify = true;
+//    public ModelReplay(GraphManager graphManager){
+//        super();
+//        this.graphManager = graphManager;
+//        verify = true;
+//    }
+
+//    public ModelReplay(GraphManager graphManager, List<String> route_list){
+//        super();
+//        this.graphManager = graphManager;
+//        this.route_list = route_list;
+//        verify = false;
+//    }
+    public ModelReplay(GraphAdjustor graphAdjustor, List<Device> devices){
+        this.graphAdjustor = graphAdjustor;
+        this.devices = devices;
     }
 
-    public ModelReplay(GraphManager graphManager, List<String> route_list){
-        super();
-        this.graphManager = graphManager;
-        this.route_list = route_list;
-        verify = false;
+    public Decision make(int id, ViewTree currentTree, ViewTree newTree, Decision prev_decision, int response){
+        return null;
     }
 
-    public void run(){
+//    public void run(){
 //        ConnectUtil.current_pkg = ConnectUtil.launch_pkg;
 //        if (graphManager == null || graphManager.appGraph == null) return;
 //        if (!restart()) return;
@@ -43,7 +56,7 @@ public class ModelReplay extends Thread{
 //            replay(false);
 //        else
 //            replay(true);
-    }
+//    }
 
 
 

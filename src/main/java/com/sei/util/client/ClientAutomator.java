@@ -13,31 +13,28 @@ import java.util.List;
 
 public class ClientAutomator {
 
-//    public static ViewTree getCurrentTree(Device d){
-//        String command = CommonUtil.ADB_PATH + "adb -s " + d.serial + " shell uiautomator dump /sdcard/view.xml";
-//        ShellUtils2.execCommand(command);
-//        String xml = "view-" + d.serial + ".xml";
-//        ShellUtils2.execCommand(CommonUtil.ADB_PATH + "adb -s " + d.serial  + " pull /sdcard/view.xml " + CommonUtil.DIR + xml);
-//        String content = CommonUtil.readFromFile(CommonUtil.DIR + xml);
-//        ViewTree tree = new ViewTree(d, content);
-//        return tree;
-//    }
-
     public static void main(String[] argv){
-        String pwd = "/home/mike/togithub/droidwalker/droidwalker/out/artifacts/droidwalker_jar";
-        String content = CommonUtil.readFromFile(pwd + "/output/com.tencent.mm/FTSAddFriendUI_-644246140.json");
-        ViewTree tree = (ViewTree) SerializeUtil.toObject(content, ViewTree.class);
-        String xpath = "FrameLayout/FrameLayout/FrameLayout/LinearLayout/FrameLayout/ViewGroup/FrameLayout/FrameLayout/LinearLayout/ListView/LinearLayout/LinearLayout/LinearLayout/LinearLayout/RelativeLayout/TextView";
-        for(String x: tree.getClickable_list())
-            System.out.println(x);
-        List<ViewNode> vns = ViewUtil.getViewByXpath(tree.root, xpath);
-        System.out.println(vns.size());
+//        String pwd = "/home/mike/togithub/droidwalker/droidwalker/out/artifacts/droidwalker_jar";
+//        String content = CommonUtil.readFromFile(pwd + "/output/com.tencent.mm/FTSAddFriendUI_-644246140.json");
+//        ViewTree tree = (ViewTree) SerializeUtil.toObject(content, ViewTree.class);
+//        String xpath = "FrameLayout/FrameLayout/FrameLayout/LinearLayout/FrameLayout/ViewGroup/FrameLayout/FrameLayout/LinearLayout/ListView/LinearLayout/LinearLayout/LinearLayout/LinearLayout/RelativeLayout/TextView";
+//        for(String x: tree.getClickable_list())
+//            System.out.println(x);
+//        List<ViewNode> vns = ViewUtil.getViewByXpath(tree.root, xpath);
+//        System.out.println(vns.size());
+        Device d = new Device("http://127.0.0.1", 6161, "192.168.59.101:5555", "com.tencent.mm", "monkeymonkey");
+        try{
+            //init(d);
+            getCurrentTree(d);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
     }
     public static void init(Device d) throws Exception{
         String command = CommonUtil.ADB_PATH + "adb -s " + d.serial + " shell uiautomator runtest" +
                 " bundle.jar uiautomator-stub.jar -c com.github.uiautomatorstub.Stub";
         Process p = Runtime.getRuntime().exec(command);
-        CommonUtil.sleep(1000);
+        CommonUtil.sleep(4000);
         String command2 = CommonUtil.ADB_PATH + "adb -s " + d.serial + " forward tcp:" + d.port + " tcp:9008";
         ShellUtils2.execCommand(command2);
     }
@@ -58,8 +55,10 @@ public class ClientAutomator {
         try {
             String response = ConnectUtil.postJson(route, data);
             if (response.contains("Success")){
+                //d.log(response);
                 String xml = "view-" + d.serial + ".xml";
-                ShellUtils2.execCommand(CommonUtil.ADB_PATH + "adb -s " + d.serial  + " pull /data/local/tmp/local/tmp/view.xml " + CommonUtil.DIR + xml);
+                ShellUtils2.execCommand(CommonUtil.ADB_PATH + "adb -s " + d.serial  + " pull /data/local/tmp/view.xml " + CommonUtil.DIR + xml);
+                ShellUtils2.execCommand(CommonUtil.ADB_PATH + "adb -s " + d.serial + " shell rm /data/local/tmp/view.xml");
                 String content = CommonUtil.readFromFile(CommonUtil.DIR + xml);
                 ViewTree tree = new ViewTree(d, content);
                 return tree;
@@ -77,7 +76,10 @@ public class ClientAutomator {
     public static int execute_action(Device d, int code, ViewTree tree, String path){
         int[] pxy = new int[2];
         if (code == Action.action_list.CLICK){
-            parse_path(tree, path, pxy);
+            ViewNode vn = parse_path(tree, path, pxy);
+            if (vn == null) return Device.UI.SAME;
+
+            d.log("path: " + path + " (" + pxy[0] + "," + pxy[1] + ")" + vn.getResourceID());
             if (pxy[0] > CommonUtil.screen_x || pxy[0] < 0)
                 return Device.UI.SAME;
 
@@ -96,7 +98,7 @@ public class ClientAutomator {
             }
 
             if (pxy[1] < 0 || pxy[1] > CommonUtil.screen_y)
-                return Device.UI.NEW;
+                return Device.UI.SAME;
             else{
                 ClientAdaptor.click(d, pxy[0], pxy[1]);
             }
@@ -117,23 +119,22 @@ public class ClientAutomator {
         if (!f.contains(ConnectUtil.launch_pkg))
             return Device.UI.OUT;
 
-        CommonUtil.sleep(800);
+        CommonUtil.sleep(1000);
         ViewTree newTree = getCurrentTree(d);
         if (newTree.root == null) return Device.UI.OUT;
 
-        if (newTree.getTreeStructureHash() != d.currentTree.getTreeStructureHash())
+        if (!newTree.getActivityName().equals(d.currentTree.getActivityName()) || newTree.getTreeStructureHash() != d.currentTree.getTreeStructureHash()){
             return Device.UI.NEW;
-        else{
+        }else{
             return Device.UI.SAME;
         }
     }
 
-    public static void parse_path(ViewTree tree, String path, int[] pxy){
+    public static ViewNode parse_path(ViewTree tree, String path, int[] pxy){
         ViewNode vn = ViewUtil.getViewByPath(tree.root, path);
         if (vn == null){
-            pxy[0] = -1000;
-            pxy[1] = -1000;
-            CommonUtil.storeTree(tree);
+            //CommonUtil.storeTree(tree);
+            return vn;
         }
         pxy[0] = vn.getX() + vn.getWidth() / 2;
         pxy[1] = vn.getY() + vn.getHeight() / 2;
@@ -143,6 +144,8 @@ public class ClientAutomator {
         else if (pxy[0] < 0){
             pxy[0] = (pxy[0] + vn.getX() + vn.getWidth()) / 2;
         }
+
+        return vn;
     }
 
     public static Boolean checkPermission(Device d){

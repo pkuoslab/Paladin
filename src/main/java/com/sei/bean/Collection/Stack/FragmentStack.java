@@ -117,10 +117,10 @@ public class FragmentStack {
 
 
             tree = ClientAutomator.getCurrentTree(d);
-            if (tree == null) {
+            if (tree == null || tree.root == null) {
                 CommonUtil.sleep(2000);
                 tree = ClientAdaptor.getCurrentTree(d);
-                if (tree == null) {
+                if (tree == null || tree.root == null) {
                     d.log("out");
                     return Device.UI.OUT;
                 }

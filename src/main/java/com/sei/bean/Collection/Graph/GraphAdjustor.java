@@ -127,6 +127,7 @@ public class GraphAdjustor extends UiTransition{
         if (action == null){
             log("device #" + id + "'s first node");
             locate(currentTree);
+            CommonUtil.getSnapshot(currentTree, d);
             return 0;
         }
 
@@ -171,20 +172,25 @@ public class GraphAdjustor extends UiTransition{
                 return UI.OLD_ACT_NEW_FRG;
             }else{
                 FragmentNode fragmentNode = actNode.find_Fragment(new_tree);
-                if (fragmentNode.path_index.size() == 0)
+                if (actNode.getFragment(fragmentNode.structure_hash) == null){
+                    actNode.fragments.add(fragmentNode);
                     CommonUtil.getSnapshot(new_tree, d);
+                }
                 log("device #" + id + ": old activity and old fragment " + name);
                 return UI.OLD_ACT_OLD_FRG;
             }
         }else{
-            if(actNode.find_Fragment(new_tree) == null){
+            FragmentNode fragmentNode = actNode.find_Fragment(new_tree);
+            if(fragmentNode == null){
                 log("device #" + id + ": brand new fragment " + name);
                 CommonUtil.getSnapshot(new_tree, d);
                 return UI.NEW_FRG;
             }else{
                 log("device #" + id + ": old fragment " + name);
-                if (currentTree.getTreeStructureHash() != new_tree.getTreeStructureHash())
+                if (actNode.getFragment(fragmentNode.structure_hash) == null) {
+                    actNode.fragments.add(fragmentNode);
                     CommonUtil.getSnapshot(new_tree, d);
+                }
                 return UI.OLD_FRG;
             }
         }
@@ -275,6 +281,8 @@ public class GraphAdjustor extends UiTransition{
             int ser = CommonUtil.shuffle(currentNode.path_index, currentNode.path_list.size());
 
             currentNode.path_index.add(ser);
+            log("path: " + currentNode.path_index.size() + "/" + currentNode.path_list.size());
+
             String path = currentNode.path_list.get(ser);
             if (currentNode.edit_fields.contains(path)) {
                 action = new Action(path, Action.action_list.ENTERTEXT);
