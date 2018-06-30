@@ -1,19 +1,17 @@
 package com.sei.util.client;
 
 import com.sei.agent.Device;
+import com.sei.bean.View.ViewNode;
 import com.sei.bean.View.ViewTree;
 import com.sei.util.ClientUtil;
 import com.sei.util.CommonUtil;
 import com.sei.util.ConnectUtil;
 import com.sei.util.ShellUtils2;
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.parser.Parser;
 import org.jsoup.select.Elements;
-
-import javax.swing.text.View;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
@@ -159,9 +157,50 @@ public class ClientAdaptor {
         CommonUtil.sleep(1000);
     }
 
-    public static Boolean login(Device d, ViewTree tree) throws Exception{
-        Method m = clzz[type].getMethod("login", Device.class, ViewTree.class);
-        return (Boolean) m.invoke(null, d, tree);
+    public static Boolean login(Device d, ViewTree tree){
+        Boolean SUCCESS = false;
+        List<ViewNode> nodes = tree.fetch_clickable_nodes();
+        for(ViewNode node : nodes){
+            if (node.getViewTag().contains("EditText")){
+                int x = node.getX() + node.getWidth() / 2;
+                int y = node.getY() + node.getHeight() / 2;
+                click(d, x, y);
+                break;
+            }
+        }
+
+        ShellUtils2.execCommand(CommonUtil.ADB_PATH + "adb -s " + d.serial  +" shell input text " + d.password);
+        CommonUtil.sleep(1000);
+        for (ViewNode node : nodes){
+            String text = node.getViewText();
+            if (text != null && (text.contains("登录") || text.contains("Log"))){
+                d.log("log in");
+                int x = node.getX() + node.getWidth() / 2;
+                int y = node.getY() + node.getHeight() / 2;
+                ClientAdaptor.click(d, x, y);
+                break;
+            }
+        }
+
+        String login_activity = tree.getActivityName();
+        CommonUtil.sleep(5000);
+        String current_activity = getTopActivityName(d);
+        if (!current_activity.contains(login_activity)){
+            d.log("current activity: " + current_activity);
+            d.log("log in successfully");
+            return true;
+        }else{
+            CommonUtil.sleep(5000);
+            current_activity = getTopActivityName(d);
+            if (!current_activity.equals(login_activity)) {
+                d.log("current activity: " + current_activity);
+                d.log("log in successfully");
+                return true;
+            }else {
+                d.log("log fail");
+                return false;
+            }
+        }
     }
 
     public static void scrollUp(Device d){

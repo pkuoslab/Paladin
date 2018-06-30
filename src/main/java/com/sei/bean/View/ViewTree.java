@@ -59,6 +59,7 @@ public class ViewTree implements Serializable {
 
     public ViewTree(Device d, String xml){
         Document doc = Jsoup.parse(xml, "", Parser.xmlParser());
+        activityName = ClientAdaptor.getTopActivityName(d);
         if (doc.children().size() == 0) {
             root = null;
             return;
@@ -66,7 +67,6 @@ public class ViewTree implements Serializable {
 
         Element startNode = doc.child(0).child(0);
         root = construct(startNode, 0, null);
-        activityName = ClientAdaptor.getTopActivityName(d);
         totalViewCount = root.total_view;
         treeStructureHash = root.getNodeRelateHash();
         getClickable_list();

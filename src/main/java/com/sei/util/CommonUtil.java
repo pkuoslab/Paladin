@@ -23,13 +23,11 @@ public class CommonUtil {
     public static double SIMILARITY = 0.9;
     public static String DIR = "";
     public static String ADB_PATH = "/home/mike/Android/Sdk/platform-tools/";
-    public static Boolean SCREENSHORT = true;
+    public static Boolean SCREENSHORT = false;
     public static Boolean UITree = true;
     public static Boolean INTENT = false;
     public static String SERIAL = "";
-    public static Random random = new Random(999); //trail : 259
-    public static int screen_x = 768;
-    public static int screen_y = 1280;
+    public static Random random = new Random(8881); //trail : 259
 
 
     public static void main(String[] argv){

@@ -10,6 +10,7 @@ import com.sei.server.component.Decision;
 import com.sei.server.component.Scheduler;
 import com.sei.util.CommonUtil;
 import com.sei.util.ConnectUtil;
+import com.sei.util.ShellUtils2;
 import com.sei.util.client.ClientAdaptor;
 import com.sei.util.client.ClientAutomator;
 
@@ -25,8 +26,11 @@ public class Device extends Thread{
     public FragmentStack fragmentStack;
     public int id;
     public ViewTree currentTree;
+    public ViewTree newTree;
+    public int screenWidth;
+    public int screenHeight;
     Scheduler scheduler;
-    GraphAdjustor graphAdjustor;
+    public GraphAdjustor graphAdjustor;
     public Boolean Exit;
     Boolean LOGIN_SUCCESS;
 
@@ -35,6 +39,10 @@ public class Device extends Thread{
         int PIDCHANGE = -1;
         int OUT = -3;
         int SAME = 2;
+    }
+
+    public static void main(String[] argv){
+        System.out.println(Integer.parseInt("1280 abc"));
     }
 
     public Device(String ip, int port, String serial, String pkg, String password){
@@ -51,6 +59,25 @@ public class Device extends Thread{
         }catch (Exception e){
             e.printStackTrace();
         }
+
+        // access screen width and height
+        setScreenSize();
+    }
+
+    private void setScreenSize(){
+        ShellUtils2.CommandResult result = ShellUtils2.execCommand(CommonUtil.ADB_PATH + "adb -s " + this.serial + " shell dumpsys window | grep init");
+        String info = result.successMsg;
+        // format: init=768X1280 320dpi
+        int p1 = info.indexOf("=");
+        int p2 = info.indexOf("x");
+        int p3 = info.indexOf(" ", p1);
+        if (p1 == -1 || p2 == -1 || p3 == -1){
+            log("set screen size fail, info: " + info);
+            return;
+        }
+        this.screenWidth = Integer.parseInt(info.substring(p1+1, p2));
+        this.screenHeight = Integer.parseInt(info.substring(p2+1, p3));
+
     }
 
     public void bind(int id, Scheduler scheduler, GraphAdjustor graphAdjustor){
@@ -65,13 +92,12 @@ public class Device extends Thread{
     }
 
     public void run(){
-        ViewTree newTree;
         int response;
         ClientAdaptor.startApp(this, ConnectUtil.launch_pkg);
         try {
             if (ClientAdaptor.checkPermission(this)) enter();
             currentTree = getCurrentTree();
-            if (currentTree == null) enter();
+            if (currentTree == null || currentTree.root == null) enter();
 
             if (checkLogin(currentTree)) currentTree = getCurrentTree();
 
@@ -87,13 +113,6 @@ public class Device extends Thread{
             decision = scheduler.update(id, currentTree, currentTree, decision, UI.NEW);
             response = execute_decision(decision);
             do {
-                if ((decision.code != Decision.CODE.CONTINUE ||
-                        response != UI.SAME) && response != UI.OUT) {
-                    newTree = getCurrentTree();
-                    if (newTree == null) response = UI.OUT;
-                } else
-                    newTree = currentTree;
-
                 decision = scheduler.update(id, currentTree, newTree, decision, response);
                 currentTree = newTree;
                 response = execute_decision(decision);
@@ -126,6 +145,8 @@ public class Device extends Thread{
 
             if (response != UI.SAME && response != UI.OUT) {
                 if (update_stack(action) == UI.OUT) response = UI.OUT;
+            }else{
+                newTree = currentTree;
             }
         }else if (decision.code == Decision.CODE.SEQ){
             return execute_actions(decision);
@@ -155,8 +176,9 @@ public class Device extends Thread{
         if (!f.contains(ConnectUtil.launch_pkg)){
             return false;
         }
-        ViewTree tree = getCurrentTree();
-        if (tree == null || fragmentStack.getPosition(tree) == -1){
+        newTree = getCurrentTree();
+        if (newTree == null || newTree.root == null
+                ||fragmentStack.getPosition(newTree) == -1){
             return false;
         }else{
             return true;
@@ -171,7 +193,7 @@ public class Device extends Thread{
         for(Action action: actions){
             ClientAdaptor.execute_action(this, action.getAction(), tree, action.getPath());
             tree = getCurrentTree();
-            if (tree == null) return UI.OUT;
+            if (tree == null || tree.root == null) return UI.OUT;
             RuntimeFragmentNode rfn = new RuntimeFragmentNode(tree);
 
             if(graphAdjustor.match(tree, action.target_activity, action.target_hash)){
@@ -202,8 +224,9 @@ public class Device extends Thread{
     }
 
     public int update_stack(Action action) throws Exception{
-        ViewTree tree = getCurrentTree();
-        if (tree == null) return UI.OUT;
+        newTree = getCurrentTree();
+        ViewTree tree = newTree;
+        if (tree == null || tree.root == null) return UI.OUT;
         if (checkLogin(tree)) tree = getCurrentTree();
 
         FragmentNode frg = graphAdjustor.searchFragment(tree);
@@ -220,12 +243,15 @@ public class Device extends Thread{
     }
 
     public int recover_stack() throws Exception{
-        //currentTree = getCurrentTree();
-        if (currentTree == null)
+        if (currentTree == null || currentTree.root == null)
             return UI.OUT;
 
         int p = fragmentStack.getPosition(currentTree);
-        if (p == fragmentStack.getSize()-1) return UI.SAME;
+        log("recover positon: " + p);
+        if (p == fragmentStack.getSize()-1) {
+            newTree = currentTree;
+            return UI.SAME;
+        }
 
         if (p != -1){
             String s = currentTree.getActivityName() + "_" + currentTree.getTreeStructureHash();
@@ -247,7 +273,7 @@ public class Device extends Thread{
             int response = ClientAdaptor.execute_action(this, Action.action_list.BACK, currentTree, "");
             if (response == UI.OUT) return UI.OUT;
             currentTree = getCurrentTree();
-            if (currentTree == null) return UI.OUT;
+            if (currentTree == null || currentTree.root == null) return UI.OUT;
 
             int p = fragmentStack.getPosition(currentTree);
             if (p != -1){
@@ -266,7 +292,7 @@ public class Device extends Thread{
 
                 if (response == UI.OUT) return UI.OUT;
                 currentTree = getCurrentTree();
-                if (currentTree == null) return UI.OUT;
+                if (currentTree == null || currentTree.root == null) return UI.OUT;
 
                 p = fragmentStack.getPosition(currentTree);
                 if (p != -1) return p;
@@ -283,13 +309,15 @@ public class Device extends Thread{
 
         int limit = 3;
         int t = 0;
-        while (currentTree == null && t < limit){
-            CommonUtil.start_paladin(this);
+        while ((currentTree == null || currentTree.root == null) && t < limit){
+            if (ClientAdaptor.type == ClientAdaptor.TYPE.XPOSED){
+                CommonUtil.start_paladin(this);
+            }
             currentTree = getCurrentTree();
             t += 1;
         }
 
-        if (currentTree == null){
+        if (currentTree == null || currentTree.root == null){
             log("restart too many times");
             Exit = true;
             return false;
@@ -307,7 +335,7 @@ public class Device extends Thread{
 
         do {
             if (checkLogin(currentTree)) currentTree = getCurrentTree();
-            if (currentTree == null){
+            if (currentTree == null || currentTree.root == null){
                 if (!restart()) return;
             }
 
@@ -320,6 +348,7 @@ public class Device extends Thread{
 
         if (p == -1){
             log("restart can not match stack entry, clear stack");
+
             if (fragmentStack == null)
                 fragmentStack = new FragmentStack();
             else
@@ -327,11 +356,13 @@ public class Device extends Thread{
             RuntimeFragmentNode rfn = new RuntimeFragmentNode(currentTree);
             fragmentStack.add(rfn);
         }
+        log("enter position: " + p);
+
     }
 
     public Boolean checkLogin(ViewTree tree) throws Exception{
         Boolean success = false;
-        if (tree == null) return success;
+        if (tree == null || tree.root == null) return success;
         if (tree.getActivityName().contains("LoginPasswordUI") && LOGIN_SUCCESS) {
             success = ClientAdaptor.login(this, tree);
             LOGIN_SUCCESS = success;

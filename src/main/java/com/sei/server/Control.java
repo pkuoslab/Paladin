@@ -4,6 +4,7 @@ import com.sei.agent.Device;
 import com.sei.server.component.Handler;
 import com.sei.server.component.Scheduler;
 import com.sei.util.*;
+import com.sei.util.client.ClientAdaptor;
 import fi.iki.elonen.NanoHTTPD;
 import fi.iki.elonen.util.ServerRunner;
 import org.json.JSONArray;
@@ -136,15 +137,29 @@ public class Control extends NanoHTTPD{
 
     void configure(String[] argv){
         String dir = "./";
-        File config = new File(dir + "config1.json");
+        File config = new File(dir + "config.json");
         if (!config.exists()) return;
         try {
-            String content = CommonUtil.readFromFile(dir + "config1.json");
+            String content = CommonUtil.readFromFile(dir + "config.json");
             JSONObject config_json = new JSONObject(content);
             if (config_json.has("ADB_PATH")){
                 log("ADB: " + config_json.getString("ADB_PATH"));
                 CommonUtil.ADB_PATH = config_json.getString("ADB_PATH");
             }
+
+            if (config_json.has("BACKEND")){
+                String backEnd = config_json.getString("BACKEND");
+                log("Backend: " + backEnd);
+
+                if (backEnd.contains("UIAutomator")){
+                    ClientAdaptor.type = 0;
+                }else if (backEnd.contains("Xposed")){
+                    ClientAdaptor.type = 1;
+                }else{
+                    log("unsupported backend: " + backEnd + " default UIAutomator");
+                }
+            }
+
             String pkg = config_json.getString("PACKAGE");
             ConnectUtil.setUp(pkg);
             JSONArray device_config = config_json.getJSONArray("DEVICES");
