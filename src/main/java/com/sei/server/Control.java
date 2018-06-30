@@ -19,7 +19,9 @@ import static com.sei.util.CommonUtil.log;
 public class Control extends NanoHTTPD{
     public static HashMap<String, Handler> route_table = new HashMap<>();
     public static Scheduler scheduler;
-    List<Device> devices = new ArrayList<>();
+    JSONObject config_json;
+    //List<Device> devices = new ArrayList<>();
+    Map<String, Device> devices = new HashMap<>();
 
 
     public static void main(String[] argv) {
@@ -63,23 +65,49 @@ public class Control extends NanoHTTPD{
             }
         });
 
-//        register("/replay", new Handler() {
-//            @Override
-//            public Response onRequest(IHTTPSession session) {
-//                // parameter format : /replay?nodes=xxx_xxx&xxx_xxx
-//                String query = session.getQueryParameterString().substring(6);
-//                //log(query.toString());
-//                if (query.equals("all")) {
-//                    strategy = new ModelReplay(graphManager);
-//                    strategy.start();
-//                }else{
-//                    List<String> route_list = Arrays.asList(query.split("&"));
-//                    strategy = new ModelReplay(graphManager, route_list);
-//                    strategy.start();
-//                }
-//                return newFixedLengthResponse("replay start");
-//            }
-//        });
+        register("/replay", new Handler() {
+            @Override
+            public Response onRequest(IHTTPSession session) {
+                // parameter format : /replay?serial=xxx&nodes=xxx_xxx&xxx_xxx
+
+                String query = session.getQueryParameterString().substring(7);
+                String serial = Arrays.asList(query.split("&")).get(0);
+                if (devices.containsKey(serial)){
+                    return newFixedLengthResponse(serial + " still running");
+                }
+
+                //log(query.toString());
+                if (query.equals("all")) {
+                    //strategy = new ModelReplay(graphManager);
+                    //strategy.start();
+                }else{
+                    try {
+                        List<String> route_list = Arrays.asList(query.split("&"));
+                        JSONArray device_config = config_json.getJSONArray("DEVICES");
+                        for (int i = 0; i < device_config.length(); i++) {
+                            JSONObject c = device_config.getJSONObject(i);
+                            if (!c.getString("SERIAL").equals(serial))
+                                continue;
+                            String pkg = config_json.getString("PACKAGE");
+                            String ip = "http://" + c.getString("IP");
+                            String pass = "";
+                            if (c.has("PASSWORD")) pass = c.getString("PASSWORD");
+                            if (ip.contains("127.0.0.1"))
+                                ShellUtils2.execCommand("adb -s " + serial + " forward tcp:" + c.getInt("PORT") + " tcp:6161");
+                            Device d = new Device(ip, c.getInt("PORT"), serial, pkg, pass, 0);
+                            scheduler.bind(d);
+                            d.start();
+                            break;
+                        }
+                    }catch (Exception e){
+                        e.printStackTrace();
+                    }
+                    //strategy = new ModelReplay(graphManager, route_list);
+                    //strategy.start();
+                }
+                return newFixedLengthResponse("replay start");
+            }
+        });
 
         register("/save", new Handler() {
             @Override
@@ -91,12 +119,27 @@ public class Control extends NanoHTTPD{
             }
         });
 
+        register("/stop", new Handler() {
+            @Override
+            public Response onRequest(IHTTPSession session) {
+                // parameter format : /stop?serial=xxx
+                String query = session.getQueryParameterString().substring(7);
+                log("stop device: " + query);
+                if(devices.containsKey(query)){
+                    devices.get(query).Exit = true;
+                    devices.remove(query);
+                }
+                return newFixedLengthResponse("stop");
+            }
+        });
+
         register("/finish", new Handler() {
             @Override
             public Response onRequest(IHTTPSession session) {
                 // format: /finish?serial=xxx
                 String query = session.getQueryParameterString().substring(7);
-                for (Device d: devices){
+                for (String key: devices.keySet()){
+                    Device d = devices.get(key);
                     if (d.serial.equals(query)){
                         if (d.Exit) return newFixedLengthResponse("yes");
                         else return newFixedLengthResponse("no");
@@ -141,7 +184,7 @@ public class Control extends NanoHTTPD{
         if (!config.exists()) return;
         try {
             String content = CommonUtil.readFromFile(dir + "config.json");
-            JSONObject config_json = new JSONObject(content);
+            config_json = new JSONObject(content);
             if (config_json.has("ADB_PATH")){
                 log("ADB: " + config_json.getString("ADB_PATH"));
                 CommonUtil.ADB_PATH = config_json.getString("ADB_PATH");
@@ -164,27 +207,43 @@ public class Control extends NanoHTTPD{
             ConnectUtil.setUp(pkg);
             JSONArray device_config = config_json.getJSONArray("DEVICES");
 
-            if (argv.length > 0)
-                scheduler = new Scheduler(argv[0]);
-            else
-                scheduler = new Scheduler("");
+            if (argv.length > 0) {
+                scheduler = new Scheduler(argv[0], devices);
+                if (argv[0].contains("-p")) return;
+            }else
+                scheduler = new Scheduler("", devices);
 
             for(int i=0; i < device_config.length(); i++){
                 JSONObject c = device_config.getJSONObject(i);
-                String ip = "http://" + c.getString("IP");
                 String serial = c.getString("SERIAL");
+                if (!ClientUtil.connected(serial)){
+                    log(serial + " not connected");
+                    continue;
+                }
+
+                String ip = "http://" + c.getString("IP");
+
                 String pass = "";
                 if (c.has("PASSWORD")) pass = c.getString("PASSWORD");
 
                 if (ip.contains("127.0.0.1"))
                     ShellUtils2.execCommand("adb -s " + serial + " forward tcp:" + c.getInt("PORT") + " tcp:6161");
-                Device d = new Device(ip, c.getInt("PORT"), serial, pkg, pass);
-                devices.add(d);
+
+                Device d;
+                if (argv.length >0 && argv[0].contains("-r")){
+                    d = new Device(ip, c.getInt("PORT"), serial, pkg, pass, 2);
+                }else{
+                    d = new Device(ip, c.getInt("PORT"), serial, pkg, pass, 1);
+                }
+
                 scheduler.bind(d);
             }
 
-            for(Device d: devices)
-                d.start();
+
+            for (String key: devices.keySet()){
+                devices.get(key).start();
+            }
+
 
         }catch (Exception e){
             e.printStackTrace();

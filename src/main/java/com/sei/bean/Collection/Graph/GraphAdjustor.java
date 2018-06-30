@@ -121,9 +121,8 @@ public class GraphAdjustor extends UiTransition{
 
 
     public int update(Device d, Action action, ViewTree currentTree, ViewTree new_tree, int response){
-        int id = d.id;
         if (action == null){
-            log("device #" + id + "'s first node");
+            log("device #" + d.serial + "'s first node");
             locate(currentTree);
             CommonUtil.getSnapshot(currentTree, d);
             return 0;
@@ -155,19 +154,18 @@ public class GraphAdjustor extends UiTransition{
     }
 
     public int queryGraph(AppGraph graph, Device d, ViewTree currentTree, ViewTree new_tree){
-        int id = d.id;
         ActivityNode actNode = graph.getAct(new_tree.getActivityName());
         String name = new_tree.getActivityName() + "_" + new_tree.getTreeStructureHash();
 
         if(!currentTree.getActivityName().equals(new_tree.getActivityName())){
             if (actNode == null){
-                log("device #" + id + ": brand new activity " + name);
+                log("device #" + d.serial + ": brand new activity " + name);
                 CommonUtil.getSnapshot(new_tree, d);
                 return UI.NEW_ACT;
             }else{
                 FragmentNode fragmentNode = actNode.find_Fragment(new_tree);
                 if (fragmentNode == null){
-                    log("device #" + id + ": old activity brand new fragment " + name);
+                    log("device #" + d.serial + ": old activity brand new fragment " + name);
                     CommonUtil.getSnapshot(new_tree, d);
                     return UI.OLD_ACT_NEW_FRG;
                 }else{
@@ -175,7 +173,7 @@ public class GraphAdjustor extends UiTransition{
                         actNode.fragments.add(fragmentNode);
                         CommonUtil.getSnapshot(new_tree, d);
                     }
-                    log("device #" + id + ": old activity and old fragment " + name);
+                    log("device #" + d.serial + ": old activity and old fragment " + name);
                     return UI.OLD_ACT_OLD_FRG;
                 }
 
@@ -183,11 +181,11 @@ public class GraphAdjustor extends UiTransition{
         }else{
             FragmentNode fragmentNode = actNode.find_Fragment(new_tree);
             if(fragmentNode == null){
-                log("device #" + id + ": brand new fragment " + name);
+                log("device #" + d.serial + ": brand new fragment " + name);
                 CommonUtil.getSnapshot(new_tree, d);
                 return UI.NEW_FRG;
             }else{
-                log("device #" + id + ": old fragment " + name);
+                log("device #" + d.serial + ": old fragment " + name);
                 if (actNode.getFragment(fragmentNode.structure_hash) == null) {
                     actNode.fragments.add(fragmentNode);
                     CommonUtil.getSnapshot(new_tree, d);

@@ -24,7 +24,7 @@ public class Device extends Thread{
     public String password;
     public String current_pkg;
     public FragmentStack fragmentStack;
-    public int id;
+    //public int id;
     public ViewTree currentTree;
     public ViewTree newTree;
     public int screenWidth;
@@ -32,6 +32,9 @@ public class Device extends Thread{
     Scheduler scheduler;
     public GraphAdjustor graphAdjustor;
     public Boolean Exit;
+
+    // executing mode
+    public int MODE;
     Boolean LOGIN_SUCCESS;
 
     public interface UI{
@@ -41,18 +44,25 @@ public class Device extends Thread{
         int SAME = 2;
     }
 
+    public interface MODE{
+        int REPLAY = 0;
+        int DFS = 1;
+        int DFSGraph = 2;
+    }
+
     public static void main(String[] argv){
         System.out.println(Integer.parseInt("1280 abc"));
     }
 
-    public Device(String ip, int port, String serial, String pkg, String password){
+    public Device(String ip, int port, String serial, String pkg, String password, int mode){
         this.ip = ip;
         this.serial = serial;
         this.current_pkg = pkg;
         this.port = port;
         this.password = password;
+        this.MODE = mode;
         LOGIN_SUCCESS = true;
-        Exit = false;
+        Exit = true;
         try {
             if (ClientAdaptor.type == ClientAdaptor.TYPE.UIAUTOMATOR)
                 ClientAutomator.init(this);
@@ -80,18 +90,18 @@ public class Device extends Thread{
 
     }
 
-    public void bind(int id, Scheduler scheduler, GraphAdjustor graphAdjustor){
-        this.id = id;
+    public void bind(Scheduler scheduler, GraphAdjustor graphAdjustor){
         this.scheduler = scheduler;
         this.graphAdjustor = graphAdjustor;
     }
 
-    public void bind(int id, Scheduler scheduler, GraphAdjustor graphAdjustor, FragmentStack fragmentStack){
-        this.bind(id, scheduler, graphAdjustor);
+    public void bind(Scheduler scheduler, GraphAdjustor graphAdjustor, FragmentStack fragmentStack){
+        this.bind(scheduler, graphAdjustor);
         this.fragmentStack = fragmentStack;
     }
 
     public void run(){
+        Exit = false;
         int response;
         ClientAdaptor.startApp(this, ConnectUtil.launch_pkg);
         try {
@@ -110,10 +120,10 @@ public class Device extends Thread{
 
             Action action = null;
             Decision decision = new Decision(Decision.CODE.CONTINUE, action);
-            decision = scheduler.update(id, currentTree, currentTree, decision, UI.NEW);
+            decision = scheduler.update(serial, currentTree, currentTree, decision, UI.NEW);
             response = execute_decision(decision);
             do {
-                decision = scheduler.update(id, currentTree, newTree, decision, response);
+                decision = scheduler.update(serial, currentTree, newTree, decision, response);
                 currentTree = newTree;
                 response = execute_decision(decision);
             } while (Exit == false);
@@ -371,6 +381,6 @@ public class Device extends Thread{
     }
 
     public void log(String info){
-        CommonUtil.log("device #" + this.id + ": " + info);
+        CommonUtil.log("device #" + this.serial + ": " + info);
     }
 }

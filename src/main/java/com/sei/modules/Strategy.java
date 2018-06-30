@@ -4,5 +4,5 @@ import com.sei.bean.View.ViewTree;
 import com.sei.server.component.Decision;
 
 public interface Strategy {
-    public Decision make(int id, ViewTree currentTree, ViewTree newTree, Decision prev_decision, int response);
+    public Decision make(String serial, ViewTree currentTree, ViewTree newTree, Decision prev_decision, int response);
 }

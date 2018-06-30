@@ -13,52 +13,65 @@ import com.sei.modules.ModelReplay;
 import com.sei.modules.Strategy;
 import com.sei.util.CommonUtil;
 import com.sei.util.SerializeUtil;
+import com.sei.util.ShellUtils2;
 
 import java.io.File;
 import java.io.FileWriter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class Scheduler {
-    List<Device> devices;
-    List<FragmentStack> stacks;
+    //List<Device> devices;
+    Map<String, Device> devices;
+    Map<String, FragmentStack> stacks;
     public GraphAdjustor graphAdjustor;
-    Strategy strategy;
+    Strategy[] strategys;
 
     Map<Tuple2<Integer, Integer>, Integer> ErrorLog;
 
-    public Scheduler(String argv){
-        devices = new ArrayList<>();
+    public Scheduler(String argv, Map<String, Device> devices){
+        //devices = new HashMap<>();
+        this.devices = devices;
         stacks = load();
         graphAdjustor = new GraphAdjustor(argv);
         ErrorLog = new HashMap<>();
-        if (argv.contains("-r")) {
-            strategy = new DFGraphStrategy(graphAdjustor, devices);
-        }else if (argv.contains("-p")){
-            strategy = new ModelReplay(graphAdjustor, devices);
-        }else
-            strategy = new DepthFirstStrategy(graphAdjustor, devices);
+        strategys = new Strategy[]{new ModelReplay(graphAdjustor, devices),
+                new DepthFirstStrategy(graphAdjustor, devices),
+                new DFGraphStrategy(graphAdjustor, devices)};
+//        if (argv.contains("-r")) {
+//            strategy = new DFGraphStrategy(graphAdjustor, devices);
+//        }else if (argv.contains("-p")){
+//            strategy = new ModelReplay(graphAdjustor, devices);
+//        }else
+//            strategy = new DepthFirstStrategy(graphAdjustor, devices);
     }
 
     public void bind(Device d){
-        devices.add(d);
-        int id = devices.size()-1;
-        CommonUtil.log("device #" + id + ": " + d.serial);
+        if (devices.containsKey(d.serial)){
+            log(d.serial, " has not finished");
+            return;
+        }
+        devices.put(d.serial, d);
+        //int id = devices.size()-1;
+        CommonUtil.log("device #" + d.serial);
         if (stacks == null)
-            d.bind(id, this, graphAdjustor);
-        else
-            d.bind(id, this, graphAdjustor, stacks.get(id));
+            d.bind(this, graphAdjustor);
+        else{
+            //d.bind(this, graphAdjustor, stacks.get(id));
+        }
     }
 
     // 作出决策，继续点击或调度
-    public synchronized Decision update(int id, ViewTree currentTree, ViewTree newTree, Decision prev_decision, int response){
-        return strategy.make(id, currentTree, newTree, prev_decision, response);
+    public synchronized Decision update(String serial, ViewTree currentTree, ViewTree newTree, Decision prev_decision, int response){
+        if (prev_decision.code == Decision.CODE.STOP){
+            devices.remove(serial);
+        }
+        Device d = devices.get(serial);
+        Strategy strategy = strategys[d.MODE];
+        return strategy.make(serial, currentTree, newTree, prev_decision, response);
     }
 
-    public void log(int id, String info){
-        CommonUtil.log("device #" + id + ": " + info);
+    public void log(String serial, String info){
+        CommonUtil.log("device #" + serial + ": " + info);
     }
 
     public void save(){
@@ -66,9 +79,10 @@ public class Scheduler {
             CommonUtil.log("save stacks");
             File file = new File("stacks.json");
             FileWriter writer = new FileWriter(file);
-            List<FragmentStack> stacks = new ArrayList<>();
-            for(Device d: devices)
-                stacks.add(d.fragmentStack);
+            //List<FragmentStack> stacks = new ArrayList<>();
+            Map<String, FragmentStack> stacks = new HashMap<>();
+            for(String key : devices.keySet())
+                stacks.put(key, devices.get(key).fragmentStack);
             String content = SerializeUtil.toBase64(stacks);
             writer.write(content);
             writer.close();
@@ -77,11 +91,11 @@ public class Scheduler {
         }
     }
 
-    public List<FragmentStack> load(){
+    public Map<String, FragmentStack> load(){
         File stackf = new File( "./stacks.json");
         if (!stackf.exists()) return null;
         String str = CommonUtil.readFromFile("./stacks.json");
-        List<FragmentStack> stacks = JSON.parseObject(str, new TypeReference<List<FragmentStack>>(){});
+        Map<String, FragmentStack> stacks = JSON.parseObject(str, new TypeReference<Map<String, FragmentStack>>(){});
         CommonUtil.log("stack number: " + stacks.size());
         return stacks;
     }

@@ -126,36 +126,6 @@ public class GraphManager extends UiTransition{
        Handler handler = handler_table.get(status);
 //       return handler.adjust(action, currentTree, new_tree);
         return 0;
-//       switch (status){
-//           case UI.NEW_ACT:
-//               fragmentNode.addInterpath(action);
-//               activityNode = new ActivityNode(new_tree.getActivityName());
-//               String ser_intent = ClientUtil.getSerIntent();
-//               activityNode.setSer_intent(ser_intent);
-//               appGraph.appendActivity(activityNode);
-//               fragmentNode = new FragmentNode(new_tree);
-//               activityNode.appendFragment(fragmentNode);
-//               break;
-//           case UI.OLD_ACT_NEW_FRG:
-//               fragmentNode.addInterpath(action);
-//               activityNode = appGraph.getAct(new_tree.getActivityName());
-//               fragmentNode = new FragmentNode(new_tree);
-//               activityNode.appendFragment(fragmentNode);
-//               break;
-//           case UI.OLD_ACT_OLD_FRG:
-//               fragmentNode.addInterpath(action);
-//               activityNode = appGraph.getAct(new_tree.getActivityName());
-//               fragmentNode = activityNode.find_Fragment(new_tree);
-//               break;
-//           case UI.NEW_FRG:
-//               fragmentNode.addIntrapath(action);
-//               fragmentNode = new FragmentNode(new_tree);
-//               activityNode.appendFragment(fragmentNode);
-//               break;
-//           case UI.OLD_FRG:
-//               fragmentNode = activityNode.find_Fragment(new_tree);
-//               break;
-//       }
     }
 
     public int queryGraph(ViewTree currentTree, ViewTree new_tree){

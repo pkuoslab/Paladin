@@ -8,9 +8,10 @@ import com.sei.bean.View.ViewTree;
 import com.sei.server.component.Decision;
 
 import java.util.List;
+import java.util.Map;
 
 public class DFGraphStrategy extends DepthFirstStrategy{
-    public DFGraphStrategy(GraphAdjustor graphAdjustor, List<Device> devices){
+    public DFGraphStrategy(GraphAdjustor graphAdjustor, Map<String, Device> devices){
         super(graphAdjustor, devices);
     }
 

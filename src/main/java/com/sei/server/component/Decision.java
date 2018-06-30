@@ -19,6 +19,7 @@ public class Decision {
     public String signature;
     public List<Action> actions;
     public int target_id;
+    public String target_serial;
     public int position;
 
     public Decision(int code, Action action){

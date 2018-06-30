@@ -16,22 +16,22 @@ import java.util.Map;
 
 public class DepthFirstStrategy implements Strategy{
     GraphAdjustor graphAdjustor;
-    List<Device> devices;
+    Map<String, Device> devices;
     //调度错误的日志
-    //Key: (目标设备id, 调度设备id)
-    //内容: 调度设备id中恢复到栈的某个位置错误
-    Map<Tuple2<Integer, Integer>, Integer> ErrorLog;
+    //Key: (目标设备serial, 调度设备serial)
+    //内容: 调度设备serial中恢复到栈的某个位置错误
+    Map<Tuple2<String, String>, Integer> ErrorLog;
 
 
-    public DepthFirstStrategy(GraphAdjustor graphAdjustor, List<Device> devices){
+    public DepthFirstStrategy(GraphAdjustor graphAdjustor, Map<String, Device> devices){
         this.graphAdjustor = graphAdjustor;
         this.devices = devices;
         ErrorLog = new HashMap<>();
     }
 
-    public Decision make(int id, ViewTree currentTree, ViewTree newTree, Decision prev_decision, int response){
+    public Decision make(String serial, ViewTree currentTree, ViewTree newTree, Decision prev_decision, int response){
         Action new_action = null;
-        Device device = devices.get(id);
+        Device device = devices.get(serial);
 
         if (prev_decision.code == Decision.CODE.CONTINUE && response != Device.UI.SAME)
             update_graph(device, prev_decision, currentTree, newTree, response);
@@ -40,7 +40,7 @@ public class DepthFirstStrategy implements Strategy{
             return new Decision(Decision.CODE.RESTART);
 
         if (prev_decision.code == Decision.CODE.SEQ && response != Device.UI.NEW)
-            ErrorLog.put(new Tuple2<>(id, prev_decision.target_id), prev_decision.position);
+            ErrorLog.put(new Tuple2<>(serial, prev_decision.target_serial), prev_decision.position);
 
         int top = device.fragmentStack.getSize() - 1;
 
@@ -55,58 +55,52 @@ public class DepthFirstStrategy implements Strategy{
 
         CommonUtil.log(newTree.getActivityName() + "_" + newTree.getTreeStructureHash() + " is over");
         //此节点已点击完毕，判断此节点是否是栈顶
-
-        if (device.fragmentStack.getSize() > 1) {
+        log(serial, "has finished dfs");
+        if (device.fragmentStack.getSize() >= 1) {
             device.fragmentStack.pop();
             return new Decision(Decision.CODE.GO, device.fragmentStack.top().getSignature());
         }else {
-            //此时本部机器已经完成深搜遍历，需要开始遍历其他机器的队列（栈）
-            log(id, "has finished dfs, need scheduled to other stack");
-            List<Action> actions = select_actions(id, newTree);
-            if (actions != null)
-                return new Decision(Decision.CODE.SEQ, actions);
-            else
-                return new Decision(Decision.CODE.STOP);
+            return new Decision(Decision.CODE.STOP);
         }
     }
 
-    public void log(int id, String info){
-        CommonUtil.log("device #" + id + ": " + info);
+    public void log(String serial, String info){
+        CommonUtil.log("device #" + serial + ": " + info);
     }
 
     public Action select_action(Device d, ViewTree tree){
         return graphAdjustor.getAction(tree);
     }
 
-    public List<Action> select_actions(int id, ViewTree tree){
-        int max = 0;
-        for(Device d : devices) {
-            if (d.fragmentStack.getSize() > max)
-                max = d.fragmentStack.getSize();
-        }
-
-        if (max <= 1) return null;
-
-        for (int i=0; i < max; i++){
-            for (int j=0; j < devices.size(); j++){
-                if (j == id) continue;
-                Device device = devices.get(j);
-                List<String> cl = device.fragmentStack.get(0).get_Clickable_list();
-                if (device.fragmentStack.getSize()-1 > i && tree.calc_similarity(cl) > 0.7){
-                    int hash = device.fragmentStack.get(i+1).getStructure_hash();
-                    String act = device.fragmentStack.get(i+1).getActivity();
-                    Tuple2<Integer, Integer> pair = new Tuple2<>(id, j);
-                    if(graphAdjustor.hasAction(act, hash) &&
-                            (ErrorLog.get(pair) == null || i+1 < ErrorLog.get(pair))) {
-                        log(id, "to device# " + j + " 's position " + (i+1));
-                        ErrorLog.put(pair, i+1);
-                        return compileAction(j, i);
-                    }
-                }
-            }
-        }
-        return null;
-    }
+//    public List<Action> select_actions(int id, ViewTree tree){
+//        int max = 0;
+//        for(Device d : devices) {
+//            if (d.fragmentStack.getSize() > max)
+//                max = d.fragmentStack.getSize();
+//        }
+//
+//        if (max <= 1) return null;
+//
+//        for (int i=0; i < max; i++){
+//            for (int j=0; j < devices.size(); j++){
+//                if (j == id) continue;
+//                Device device = devices.get(j);
+//                List<String> cl = device.fragmentStack.get(0).get_Clickable_list();
+//                if (device.fragmentStack.getSize()-1 > i && tree.calc_similarity(cl) > 0.7){
+//                    int hash = device.fragmentStack.get(i+1).getStructure_hash();
+//                    String act = device.fragmentStack.get(i+1).getActivity();
+//                    Tuple2<Integer, Integer> pair = new Tuple2<>(id, j);
+//                    if(graphAdjustor.hasAction(act, hash) &&
+//                            (ErrorLog.get(pair) == null || i+1 < ErrorLog.get(pair))) {
+//                        log(id, "to device# " + j + " 's position " + (i+1));
+//                        ErrorLog.put(pair, i+1);
+//                        return compileAction(j, i);
+//                    }
+//                }
+//            }
+//        }
+//        return null;
+//    }
 
     public List<Action> compileAction(int id, int pos){
         Device d = devices.get(id);

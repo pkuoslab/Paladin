@@ -13,7 +13,9 @@ import com.sei.util.CommonUtil;
 import com.sei.util.ConnectUtil;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletionException;
 
 import static com.sei.util.CommonUtil.log;
@@ -22,7 +24,7 @@ public class ModelReplay implements Strategy{
     public volatile Boolean verify = false;
     FragmentNode start;
     public GraphAdjustor graphAdjustor;
-    List<Device> devices;
+    Map<String, Device> devices;
     List<String> route_list;
     int test_case = 0;
 
@@ -38,12 +40,12 @@ public class ModelReplay implements Strategy{
 //        this.route_list = route_list;
 //        verify = false;
 //    }
-    public ModelReplay(GraphAdjustor graphAdjustor, List<Device> devices){
+    public ModelReplay(GraphAdjustor graphAdjustor, Map<String, Device> devices){
         this.graphAdjustor = graphAdjustor;
         this.devices = devices;
     }
 
-    public Decision make(int id, ViewTree currentTree, ViewTree newTree, Decision prev_decision, int response){
+    public Decision make(String serial, ViewTree currentTree, ViewTree newTree, Decision prev_decision, int response){
         return null;
     }
 

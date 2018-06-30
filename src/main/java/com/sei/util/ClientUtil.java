@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static com.sei.util.CommonUtil.ADB_PATH;
 import static com.sei.util.CommonUtil.log;
 
 /**
@@ -30,6 +31,11 @@ import static com.sei.util.CommonUtil.log;
 public class ClientUtil{
 
     public static void main(String[] argv){
+        if(connected("192.168.59.101:5555")){
+            log("connected!");
+        }else{
+            log("not connected");
+        }
     }
 
     public static void record(String ins, int test_case){
@@ -255,5 +261,18 @@ public class ClientUtil{
                 return false;
             }
         }
+    }
+
+    public static Boolean connected(String serial){
+        ShellUtils2.CommandResult result = ShellUtils2.execCommand(ADB_PATH + "adb devices");
+        String[] lines = result.successMsg.split("\n");
+        if (lines.length <= 1) return false;
+
+        for(int i=1; i < lines.length; i++){
+            String[] cp = lines[i].split("\t");
+            if (cp[0].equals(serial)) return true;
+        }
+
+        return false;
     }
 }
