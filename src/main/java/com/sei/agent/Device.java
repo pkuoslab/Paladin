@@ -31,10 +31,13 @@ public class Device extends Thread{
     public int screenHeight;
     Scheduler scheduler;
     public GraphAdjustor graphAdjustor;
-    public Boolean Exit;
+    public volatile Boolean Exit;
+    public List<String> visits;
 
     // executing mode
-    public int MODE;
+    public int mode;
+
+    private List<String> route_list;
     Boolean LOGIN_SUCCESS;
 
     public interface UI{
@@ -60,9 +63,10 @@ public class Device extends Thread{
         this.current_pkg = pkg;
         this.port = port;
         this.password = password;
-        this.MODE = mode;
+        this.mode = mode;
+        this.visits = new ArrayList<>();
         LOGIN_SUCCESS = true;
-        Exit = true;
+        Exit = false;
         try {
             if (ClientAdaptor.type == ClientAdaptor.TYPE.UIAUTOMATOR)
                 ClientAutomator.init(this);
@@ -71,24 +75,10 @@ public class Device extends Thread{
         }
 
         // access screen width and height
-        setScreenSize();
+        CommonUtil.setScreenSize(this);
     }
 
-    private void setScreenSize(){
-        ShellUtils2.CommandResult result = ShellUtils2.execCommand(CommonUtil.ADB_PATH + "adb -s " + this.serial + " shell dumpsys window | grep init");
-        String info = result.successMsg;
-        // format: init=768X1280 320dpi
-        int p1 = info.indexOf("=");
-        int p2 = info.indexOf("x");
-        int p3 = info.indexOf(" ", p1);
-        if (p1 == -1 || p2 == -1 || p3 == -1){
-            log("set screen size fail, info: " + info);
-            return;
-        }
-        this.screenWidth = Integer.parseInt(info.substring(p1+1, p2));
-        this.screenHeight = Integer.parseInt(info.substring(p2+1, p3));
 
-    }
 
     public void bind(Scheduler scheduler, GraphAdjustor graphAdjustor){
         this.scheduler = scheduler;
@@ -100,33 +90,24 @@ public class Device extends Thread{
         this.fragmentStack = fragmentStack;
     }
 
+    @Override
     public void run(){
-        Exit = false;
         int response;
-        ClientAdaptor.startApp(this, ConnectUtil.launch_pkg);
+
         try {
-            if (ClientAdaptor.checkPermission(this)) enter();
-            currentTree = getCurrentTree();
-            if (currentTree == null || currentTree.root == null) enter();
-
-            if (checkLogin(currentTree)) currentTree = getCurrentTree();
-
-            if (fragmentStack == null) {
-                fragmentStack = new FragmentStack();
-                RuntimeFragmentNode rfn = new RuntimeFragmentNode(currentTree);
-                fragmentStack.add(rfn);
-            } else
-                recover_stack();
-
+            initiate();
             Action action = null;
             Decision decision = new Decision(Decision.CODE.CONTINUE, action);
             decision = scheduler.update(serial, currentTree, currentTree, decision, UI.NEW);
             response = execute_decision(decision);
-            do {
+            while(Exit == false){
                 decision = scheduler.update(serial, currentTree, newTree, decision, response);
                 currentTree = newTree;
                 response = execute_decision(decision);
-            } while (Exit == false);
+            }
+
+            //结束前反馈STOP命令，使scheduler将其在设备运行表中删除
+            scheduler.update(serial, currentTree, newTree, decision, response);
         }catch (Exception e){
             e.printStackTrace();
         }
@@ -134,6 +115,24 @@ public class Device extends Thread{
 
     public ViewTree getCurrentTree() throws Exception{
         return ClientAdaptor.getCurrentTree(this);
+    }
+
+    private void initiate() throws Exception{
+        ClientAdaptor.startApp(this, ConnectUtil.launch_pkg);
+        if (ClientAdaptor.checkPermission(this)) enter();
+        currentTree = getCurrentTree();
+        if (currentTree == null || currentTree.root == null) enter();
+
+        if (checkLogin(currentTree)) currentTree = getCurrentTree();
+
+        if (mode == MODE.REPLAY) return;
+
+        if (fragmentStack == null) {
+            fragmentStack = new FragmentStack();
+            RuntimeFragmentNode rfn = new RuntimeFragmentNode(currentTree);
+            fragmentStack.add(rfn);
+        } else
+            recover_stack();
     }
 
 
@@ -154,14 +153,18 @@ public class Device extends Thread{
                 response = ClientAdaptor.execute_action(this, action.getAction(), currentTree, action.getPath());
 
             if (response != UI.SAME && response != UI.OUT) {
-                if (update_stack(action) == UI.OUT) response = UI.OUT;
+                if (mode != MODE.REPLAY && update_stack(action) == UI.OUT){
+                    response = UI.OUT;
+                }else{
+                    newTree = getCurrentTree();
+                }
             }else{
                 newTree = currentTree;
             }
         }else if (decision.code == Decision.CODE.SEQ){
             return execute_actions(decision);
         }else if (decision.code == Decision.CODE.STOP) {
-            log("stop");
+            //log("stop");
             Exit = true;
         }else if (decision.code == Decision.CODE.RESTART || decision.code == Decision.CODE.GO){
             if (decision.code == Decision.CODE.RESTART) {
@@ -171,8 +174,8 @@ public class Device extends Thread{
                 enter();
             }
             response = recover_stack();
-            if (response != UI.SAME && response != UI.OUT){
-                if(update_stack(null) == UI.OUT) response = UI.OUT;
+            if (response == UI.NEW || response == UI.PIDCHANGE){
+                if (update_stack(null) == UI.OUT) response = UI.OUT;
             }
         }
 
@@ -312,7 +315,7 @@ public class Device extends Thread{
         return UI.OUT;
     }
 
-    Boolean restart() throws Exception{
+    private Boolean restart() throws Exception{
         ClientAdaptor.stopApp(this, ConnectUtil.launch_pkg);
         ClientAdaptor.startApp(this, ConnectUtil.launch_pkg);
         currentTree = getCurrentTree();
@@ -349,7 +352,18 @@ public class Device extends Thread{
                 if (!restart()) return;
             }
 
-            if (fragmentStack != null) p = fragmentStack.getPosition(currentTree);
+            if (fragmentStack != null){
+                p = fragmentStack.getPosition(currentTree);
+                // 尽量匹配上栈的第一个节点
+                if (p == -1) {
+                    Action action = fragmentStack.get(0).getAction();
+                    int idx = action.path.indexOf("#");
+                    String xpath = action.path.substring(0, idx);
+                    if (currentTree.getClickable_list().contains(xpath))
+                        p = 0;
+                }
+            }
+
             log("refresh");
             CommonUtil.sleep(1000);
             currentTree = getCurrentTree();
@@ -382,5 +396,13 @@ public class Device extends Thread{
 
     public void log(String info){
         CommonUtil.log("device #" + this.serial + ": " + info);
+    }
+
+    public void setRoute_list(List<String> route_list){
+        this.route_list = route_list;
+    }
+
+    public List<String> getRoute_list(){
+        return this.route_list;
     }
 }

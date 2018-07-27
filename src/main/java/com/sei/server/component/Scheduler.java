@@ -37,12 +37,9 @@ public class Scheduler {
         strategys = new Strategy[]{new ModelReplay(graphAdjustor, devices),
                 new DepthFirstStrategy(graphAdjustor, devices),
                 new DFGraphStrategy(graphAdjustor, devices)};
-//        if (argv.contains("-r")) {
-//            strategy = new DFGraphStrategy(graphAdjustor, devices);
-//        }else if (argv.contains("-p")){
-//            strategy = new ModelReplay(graphAdjustor, devices);
-//        }else
-//            strategy = new DepthFirstStrategy(graphAdjustor, devices);
+        if (strategys == null){
+            log("", "why???");
+        }
     }
 
     public void bind(Device d){
@@ -52,11 +49,11 @@ public class Scheduler {
         }
         devices.put(d.serial, d);
         //int id = devices.size()-1;
-        CommonUtil.log("device #" + d.serial);
+        //CommonUtil.log("device #" + d.serial);
         if (stacks == null)
             d.bind(this, graphAdjustor);
         else{
-            //d.bind(this, graphAdjustor, stacks.get(id));
+            d.bind(this, graphAdjustor, stacks.get(d.serial));
         }
     }
 
@@ -64,10 +61,14 @@ public class Scheduler {
     public synchronized Decision update(String serial, ViewTree currentTree, ViewTree newTree, Decision prev_decision, int response){
         if (prev_decision.code == Decision.CODE.STOP){
             devices.remove(serial);
+            return null;
         }
         Device d = devices.get(serial);
-        Strategy strategy = strategys[d.MODE];
-        return strategy.make(serial, currentTree, newTree, prev_decision, response);
+        if (d == null){
+            return null;
+        }
+        //Strategy strategy = strategys[d.MODE];
+        return strategys[d.mode].make(serial, currentTree, newTree, prev_decision, response);
     }
 
     public void log(String serial, String info){
@@ -81,8 +82,9 @@ public class Scheduler {
             FileWriter writer = new FileWriter(file);
             //List<FragmentStack> stacks = new ArrayList<>();
             Map<String, FragmentStack> stacks = new HashMap<>();
-            for(String key : devices.keySet())
+            for(String key : devices.keySet()) {
                 stacks.put(key, devices.get(key).fragmentStack);
+            }
             String content = SerializeUtil.toBase64(stacks);
             writer.write(content);
             writer.close();

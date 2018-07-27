@@ -104,6 +104,7 @@ public class FragmentStack {
 
         int limits = 0;
         ViewTree tree = d.currentTree;
+        ViewTree newTree;
         for(int i=start; i < stack.size()-1; i++){
             RuntimeFragmentNode rfn = stack.get(i);
             Action action = rfn.getAction();
@@ -116,27 +117,24 @@ public class FragmentStack {
                 ClientAdaptor.execute_action(d, action.getAction(), tree, action.getPath());
 
 
-            tree = ClientAutomator.getCurrentTree(d);
-            if (tree == null || tree.root == null) {
+            newTree = ClientAutomator.getCurrentTree(d);
+            if (newTree == null || newTree.root == null) {
                 CommonUtil.sleep(2000);
-                tree = ClientAdaptor.getCurrentTree(d);
-                if (tree == null || tree.root == null) {
+                newTree = ClientAdaptor.getCurrentTree(d);
+                if (newTree == null || newTree.root == null) {
                     d.log("out");
                     return Device.UI.OUT;
                 }
             }
 
-            int position = getPosition(tree);
-
-            if (position == i+1)
-                continue;
+            int position = getPosition(newTree);
 
             if (position == i) {
                 int c = i+1;
                 d.log("can not recover, cut above " + c + "/" + stack.size());
                 for(int j=stack.size()-1; j >= c; j--)
                     stack.remove(j);
-                d.newTree = tree;
+                d.newTree = newTree;
                 return Device.UI.SAME;
             }else if (position != -1 && position != i+1){
                 if (limits >= 3){
@@ -144,6 +142,8 @@ public class FragmentStack {
                     d.log("continuously back to position " + position + " cut above " + c + "/" + stack.size());
                     for(int j=stack.size()-1; j >= c; j--)
                         stack.remove(j);
+                    d.newTree = newTree;
+                    return Device.UI.SAME;
                 }
                 limits += 1;
                 i = position-1;
@@ -152,10 +152,17 @@ public class FragmentStack {
                 d.log("recover to node not in stack, cut above " + c + "/" + stack.size());
                 for(int j=stack.size()-1; j >= c; j--)
                     stack.remove(j);
+                d.currentTree = tree;
+                d.newTree = newTree;
                 // tie isolated fragment
-                RuntimeFragmentNode top = stack.get(stack.size()-1);
-                d.graphAdjustor.tie(top, tree, action);
+                //RuntimeFragmentNode top = stack.get(stack.size()-1);
+                //d.graphAdjustor.tie(top, tree, action);
                 return Device.UI.NEW;
+            }
+
+            if (position == i+1) {
+                tree = newTree;
+                continue;
             }
         }
         d.log("recover successfully");

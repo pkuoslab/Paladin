@@ -9,12 +9,11 @@ import com.sei.util.ClientUtil;
 import com.sei.util.CommonUtil;
 import com.sei.util.ConnectUtil;
 import com.sei.util.SerializeUtil;
+import com.sei.util.client.ClientAdaptor;
+
 import java.io.File;
 import java.io.FileWriter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static com.sei.util.CommonUtil.log;
 
@@ -47,9 +46,10 @@ public class GraphAdjustor extends UiTransition{
                 ActivityNode activityNode = new ActivityNode(new_tree.getActivityName());
                 FragmentNode frag_cur = new FragmentNode(new_tree);
                 activityNode.appendFragment(frag_cur);
-                if (!REPLAY_MODE)
+                if (!REPLAY_MODE) {
                     appGraph.appendActivity(activityNode);
-                else {
+                    CommonUtil.upload(appGraph, new_tree.getActivityName() + "_" + new_tree.getTreeStructureHash());
+                }else {
                     appGraph.transfer_actions(frag_cur);
                     reGraph.appendActivity(activityNode);
                 }
@@ -65,15 +65,17 @@ public class GraphAdjustor extends UiTransition{
                 action.setIntent(getSerIntent(d));
                 FragmentNode frag_prev = locate(currentTree);
                 frag_prev.addInterpath(action);
-                ActivityNode activityNode;
-                if (!REPLAY_MODE)
-                    activityNode = appGraph.find_Activity(new_tree.getActivityName());
-                else
-                    activityNode = reGraph.find_Activity(new_tree.getActivityName());
+                AppGraph graph;
+                if (!REPLAY_MODE) {
+                    graph = appGraph;
+                }else
+                    graph = reGraph;
+                ActivityNode activityNode = graph.find_Activity(new_tree.getActivityName());
                 FragmentNode frag_cur = new FragmentNode(new_tree);
                 if (REPLAY_MODE) appGraph.transfer_actions(frag_cur);
 
                 activityNode.appendFragment(frag_cur);
+                CommonUtil.upload(appGraph, new_tree.getActivityName() + "_" + new_tree.getTreeStructureHash());
                 return UI.OLD_ACT_NEW_FRG;
             }
         });
@@ -85,6 +87,7 @@ public class GraphAdjustor extends UiTransition{
                 action.setIntent(getSerIntent(d));
                 FragmentNode frag_prev = locate(currentTree);
                 frag_prev.addInterpath(action);
+                CommonUtil.upload(appGraph, new_tree.getActivityName() + "_" + new_tree.getTreeStructureHash());
                 return UI.OLD_ACT_OLD_FRG;
             }
         });
@@ -103,7 +106,7 @@ public class GraphAdjustor extends UiTransition{
                 FragmentNode frag_cur = new FragmentNode(new_tree);
                 activityNode.appendFragment(frag_cur);
                 if (REPLAY_MODE) appGraph.transfer_actions(frag_cur);
-
+                CommonUtil.upload(appGraph, new_tree.getActivityName() + "_" + new_tree.getTreeStructureHash());
                 return UI.NEW_FRG;
             }
         });
@@ -114,6 +117,7 @@ public class GraphAdjustor extends UiTransition{
                 action.setTarget(new_tree.getActivityName(), new_tree.getTreeStructureHash());
                 FragmentNode frag_prev = locate(currentTree);
                 frag_prev.addIntrapath(action);
+                CommonUtil.upload(appGraph, new_tree.getActivityName() + "_" + new_tree.getTreeStructureHash());
                 return UI.OLD_FRG;
             }
         });
@@ -128,7 +132,7 @@ public class GraphAdjustor extends UiTransition{
             return 0;
         }
 
-        if (response == Device.UI.OUT && !currentTree.getActivityName().equals(new_tree.getActivityName())){
+        if (response == Device.UI.OUT && !ClientUtil.getForeground(d).equals(ConnectUtil.launch_pkg)){
             String current_app = ClientUtil.getForeground(d);
             String act = ClientUtil.getTopActivityName(d);
             action.setTarget(current_app + "_" + act);
@@ -136,6 +140,8 @@ public class GraphAdjustor extends UiTransition{
             FragmentNode fragmentNode = locate(currentTree);
             fragmentNode.interAppPaths.add(action);
             d.log("add interAppPath " + current_app + "_" + act);
+            return 0;
+        }else if(response == Device.UI.OUT){
             return 0;
         }
 
@@ -156,6 +162,9 @@ public class GraphAdjustor extends UiTransition{
     public int queryGraph(AppGraph graph, Device d, ViewTree currentTree, ViewTree new_tree){
         ActivityNode actNode = graph.getAct(new_tree.getActivityName());
         String name = new_tree.getActivityName() + "_" + new_tree.getTreeStructureHash();
+        if (new_tree.hasWebview){
+            d.log("detect webview " + new_tree.getActivityName() + "_" + new_tree.getTreeStructureHash());
+        }
 
         if(!currentTree.getActivityName().equals(new_tree.getActivityName())){
             if (actNode == null){
@@ -232,6 +241,7 @@ public class GraphAdjustor extends UiTransition{
                 for(FragmentNode frgNode: actNode.getFragments()) {
                     frgNode.VISIT = false;
                     frgNode.clicked_edges = new ArrayList<>();
+                    frgNode.setColor("white");
                 }
             }
         }catch (Exception e){
@@ -242,6 +252,14 @@ public class GraphAdjustor extends UiTransition{
     @Override
     public void reset(){
         appGraph = null;
+    }
+
+    public void resetColor(){
+        for(ActivityNode activityNode: appGraph.activities){
+            for(FragmentNode fragmentNode: activityNode.fragments){
+                fragmentNode.setColor("white");
+            }
+        }
     }
 
     public FragmentNode locate(ViewTree tree){
@@ -380,7 +398,11 @@ public class GraphAdjustor extends UiTransition{
 
         ActivityNode actNode = graph.getAct(tree.getActivityName());
         if (actNode == null) return null;
-        return actNode.find_Fragment(tree);
+        FragmentNode fragmentNode = actNode.find_Fragment(tree);
+        if (fragmentNode != null && !actNode.fragments.contains(fragmentNode)){
+            actNode.fragments.add(fragmentNode);
+        }
+        return fragmentNode;
     }
 
     public Map<String, List<String>> getAllNodesTag(){
@@ -426,5 +448,63 @@ public class GraphAdjustor extends UiTransition{
         }else{
             fragmentNode.addInterpath(action);
         }
+    }
+
+    public List<Action> BFS(FragmentNode start, FragmentNode end){
+        Queue<FragmentNode> queue = new LinkedList<>();
+        queue.add(start);
+        start.setColor("gray");
+        while(!queue.isEmpty()){
+            FragmentNode processing = queue.poll();
+            if (loop(processing.getIntrapaths(), end, processing, queue)){
+                return buildPath(end);
+            }else if (loop(processing.getInterpaths(), end, processing, queue)){
+                return buildPath(end);
+            }
+        }
+        return null;
+    }
+
+    private List<Action> buildPath(FragmentNode end){
+        List<Action> path = new ArrayList<>();
+        FragmentNode tmp;
+        while(end.getPrevious() != null){
+            path.add(end.getAction());
+            tmp = end;
+            end = end.getPrevious();
+            tmp.setPrevious(null);
+        }
+        return path;
+    }
+
+    private boolean loop(List<Action> actions, FragmentNode end, FragmentNode processing, Queue<FragmentNode> queue){
+        for(Action action : actions){
+            FragmentNode n = appGraph.getFragment(action.target_activity, action.target_hash);
+            if (n == null){
+                continue;
+            }
+            if (n.getColor().equals("white")){
+                n.setPrevious(processing);
+                n.setAction(action);
+                n.setColor("gray");
+                if (n.getActivity().equals(end.getActivity()) &&
+                        n.getStructure_hash() == end.getStructure_hash()){
+                    //log("search "  + n.getSignature() + " success!"
+                    //+ "previous " + n.getPrevious().getSignature());
+                    return true;
+                }else{
+                    queue.add(n);
+                }
+            }
+        }
+        return false;
+    }
+
+    public FragmentNode getFragmentInGraph(ViewTree tree){
+        ActivityNode actNode = appGraph.getAct(tree.getActivityName());
+        if (actNode == null){
+            log(tree.getActivityName() + " not found");
+        }
+        return actNode.find_Fragment_in_graph(tree);
     }
 }

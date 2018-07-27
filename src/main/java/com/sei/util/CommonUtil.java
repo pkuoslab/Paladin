@@ -1,9 +1,12 @@
 package com.sei.util;
 
+import com.alibaba.fastjson.JSON;
 import com.sei.agent.Device;
+import com.sei.bean.Collection.Graph.AppGraph;
 import com.sei.bean.View.ViewTree;
 import com.sei.util.client.ClientAdaptor;
 import jdk.jfr.events.ExceptionThrownEvent;
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -27,12 +30,12 @@ public class CommonUtil {
     public static Boolean UITree = true;
     public static Boolean INTENT = false;
     public static String SERIAL = "";
-    public static Random random = new Random(8881); //trail : 259
+    public static Random random = new Random(8888); //trail : 259
 
 
     public static void main(String[] argv){
-        for(int i=0; i < 15; i++)
-            System.out.println(random.nextDouble());
+        AppGraph appGraph = new AppGraph();
+        upload(appGraph, "new");
     }
 
     public static void sleep(int milliseconds){
@@ -118,6 +121,10 @@ public class CommonUtil {
         System.out.println(S + "\t" + info);
     }
 
+    public static void log(String serial, String info){
+        log("device #" + serial + ": " + info);
+    }
+
     public static void start_paladin(Device d){
         ClientAdaptor.stopApp(d, "ias.deepsearch.com.helper");
         ClientAdaptor.stopApp(d, ConnectUtil.launch_pkg);
@@ -139,5 +146,34 @@ public class CommonUtil {
 
         int tot = s1.size() + s2.size();
         return 2 * match / tot;
+    }
+
+    public static void setScreenSize(Device d){
+        ShellUtils2.CommandResult result = ShellUtils2.execCommand(CommonUtil.ADB_PATH + "adb -s " + d.serial + " shell dumpsys window | grep init");
+        String info = result.successMsg;
+        // format: init=768X1280 320dpi
+        int p1 = info.indexOf("=");
+        int p2 = info.indexOf("x");
+        int p3 = info.indexOf(" ", p1);
+        if (p1 == -1 || p2 == -1 || p3 == -1){
+            log("set screen size fail, info: " + info);
+            return;
+        }
+        d.screenWidth = Integer.parseInt(info.substring(p1+1, p2));
+        d.screenHeight = Integer.parseInt(info.substring(p2+1, p3));
+
+    }
+
+    public static void upload(AppGraph appGraph, String current){
+        try {
+            String content = SerializeUtil.toBase64(appGraph);
+            //JSONObject jo = new JSONObject(content);
+            com.alibaba.fastjson.JSONObject jo = new com.alibaba.fastjson.JSONObject();
+            jo.put("graph", content);
+            jo.put("current", current);
+            ConnectUtil.postJson("http://127.0.0.1:5000/upload", jo);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
     }
 }

@@ -356,7 +356,7 @@ public class GraphManager extends UiTransition{
 
     public FragmentNode getFragmentInGraph(ViewTree tree){
         ActivityNode actNode = appGraph.getAct(tree.getActivityName());
-        return actNode.find_Fragment_in_graph_beta(tree);
+        return actNode.find_Fragment_in_graph(tree);
     }
 
     public int getActivitySize(){return appGraph.activities.size();}

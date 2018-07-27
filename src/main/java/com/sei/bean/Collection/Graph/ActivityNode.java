@@ -93,47 +93,53 @@ public class ActivityNode {
         return null;
     }
 
+//    public FragmentNode find_Fragment_in_graph(ViewTree vt){
+//        for (FragmentNode vc : fragments){
+//            if (vc.getStructure_hash() == vt.getTreeStructureHash()) {
+//                return vc;
+//            }
+//        }
+//
+//        for (FragmentNode vc : fragments){
+//            float match = 0f;
+//            for (String s : vc.get_Clickable_list()){
+//                if (vt.getClickable_list().contains(s)) {
+////                    Log.i("liuyi", s);
+//                    match += 1;
+//                }
+//            }
+//            int tot = (vc.get_Clickable_list().size() + vt.getClickable_list().size());
+//            log(vc.getStructure_hash() + " match : " + 2 * match + " size: " + tot + " rate: " + 2 * match / tot);
+//            if (2 * match / tot >= 0.85){
+////                FragmentNode fc = new FragmentNode(vt.treeStructureHash, vt);
+//                return vc;
+//            }
+//        }
+//        return null;
+//    }
+
     public FragmentNode find_Fragment_in_graph(ViewTree vt){
         for (FragmentNode vc : fragments){
             if (vc.getStructure_hash() == vt.getTreeStructureHash()) {
                 return vc;
             }
         }
-
+        float max = 0.0f;
+        FragmentNode target = null;
         for (FragmentNode vc : fragments){
-            float match = 0f;
-            for (String s : vc.get_Clickable_list()){
-                if (vt.getClickable_list().contains(s)) {
-//                    Log.i("liuyi", s);
-                    match += 1;
-                }
-            }
-            int tot = (vc.get_Clickable_list().size() + vt.getClickable_list().size());
-            log(vc.getStructure_hash() + " match : " + 2 * match + " size: " + tot + " rate: " + 2 * match / tot);
-            if (2 * match / tot >= 0.85){
-//                FragmentNode fc = new FragmentNode(vt.treeStructureHash, vt);
-                return vc;
-            }
-        }
-        return null;
-    }
-
-    public FragmentNode find_Fragment_in_graph_beta(ViewTree vt){
-        log("tree: " + vt.getTreeStructureHash());
-
-        for (FragmentNode vc : fragments){
-            if (vc.getStructure_hash() == vt.getTreeStructureHash()) {
-                return vc;
-            }
-        }
-
-        for (FragmentNode vc : fragments){
-            log("fragment: " + vc.getStructure_hash());
+            //log("fragment: " + vc.getStructure_hash());
 
             float match = calculate_similarity(vc.get_Clickable_list(), vt.getClickable_list());
-            log("match: " + match);
-            if (match > CommonUtil.SIMILARITY)
-                return vc;
+            //log("match: " + match);
+            if (match > max) {
+                max = match;
+                target = vc;
+            }
+        }
+
+        if (max > 0 && target != null){
+            //log("similarity: " + max + " with " +target.getSignature());
+            return target;
         }
 
         return null;

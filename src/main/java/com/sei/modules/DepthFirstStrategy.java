@@ -33,7 +33,7 @@ public class DepthFirstStrategy implements Strategy{
         Action new_action = null;
         Device device = devices.get(serial);
 
-        if (prev_decision.code == Decision.CODE.CONTINUE && response != Device.UI.SAME)
+        if (response != Device.UI.SAME)
             update_graph(device, prev_decision, currentTree, newTree, response);
 
         if (response == Device.UI.OUT)
@@ -55,8 +55,8 @@ public class DepthFirstStrategy implements Strategy{
 
         CommonUtil.log(newTree.getActivityName() + "_" + newTree.getTreeStructureHash() + " is over");
         //此节点已点击完毕，判断此节点是否是栈顶
-        log(serial, "has finished dfs");
-        if (device.fragmentStack.getSize() >= 1) {
+        //log(serial, "has finished dfs");
+        if (device.fragmentStack.getSize() > 1) {
             device.fragmentStack.pop();
             return new Decision(Decision.CODE.GO, device.fragmentStack.top().getSignature());
         }else {

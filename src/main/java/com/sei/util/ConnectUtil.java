@@ -6,9 +6,7 @@ import com.sei.bean.Collection.Graph.AppGraph;
 import com.sei.bean.View.ViewTree;
 import okhttp3.*;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStreamWriter;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
@@ -81,10 +79,21 @@ public class ConnectUtil {
         wr.flush();
 
         int HttpResult = con.getResponseCode();
-        if (HttpResult == HttpURLConnection.HTTP_OK)
-            return "Success";
-        else
-            return con.getResponseMessage();
+        if (HttpResult == HttpURLConnection.HTTP_OK) {
+            InputStreamReader is = new InputStreamReader((InputStream) con.getContent());
+            BufferedReader bf = new BufferedReader(is);
+            StringBuilder sb = new StringBuilder();
+            String line;
+            do{
+                line = bf.readLine();
+                if (line != null)
+                    sb.append(line + "\n");
+            }while(line != null);
+            return sb.toString();
+        }else{
+            log(con.getResponseMessage());
+            return "fail";
+        }
     }
 
     public static void force_stop(String pkg){

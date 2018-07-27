@@ -1,6 +1,7 @@
 package com.sei.server;
 
 import com.sei.agent.Device;
+import com.sei.modules.test.ReplayTest;
 import com.sei.server.component.Handler;
 import com.sei.server.component.Scheduler;
 import com.sei.util.*;
@@ -71,39 +72,49 @@ public class Control extends NanoHTTPD{
                 // parameter format : /replay?serial=xxx&nodes=xxx_xxx&xxx_xxx
 
                 String query = session.getQueryParameterString().substring(7);
-                String serial = Arrays.asList(query.split("&")).get(0);
+                List<String> route_list = Arrays.asList(query.split("&"));
+                String serial = route_list.get(0);
                 if (devices.containsKey(serial)){
                     return newFixedLengthResponse(serial + " still running");
                 }
 
-                //log(query.toString());
-                if (query.equals("all")) {
+                Device d = null;
+                try {
+                    JSONArray device_config = config_json.getJSONArray("DEVICES");
+                    for (int i = 0; i < device_config.length(); i++) {
+                        JSONObject c = device_config.getJSONObject(i);
+                        if (!c.getString("SERIAL").equals(serial))
+                            continue;
+                        String pkg = config_json.getString("PACKAGE");
+                        String ip = "http://" + c.getString("IP");
+                        String pass = "";
+                        if (c.has("PASSWORD")) pass = c.getString("PASSWORD");
+                        if (ip.contains("127.0.0.1"))
+                            ShellUtils2.execCommand("adb -s " + serial + " forward tcp:" + c.getInt("PORT") + " tcp:6161");
+                        d = new Device(ip, c.getInt("PORT"), serial, pkg, pass, 0);
+                        //d.setRoute_list(route_list);
+                        scheduler.bind(d);
+                        //ClientAdaptor.stopApp(d, pkg);
+                        //d.start();
+                        break;
+                    }
+                }catch (Exception e){
+                    e.printStackTrace();
+                    return newFixedLengthResponse("error");
+                }
+
+                if (route_list.get(1).substring(6).equals("all")) {
                     //strategy = new ModelReplay(graphManager);
                     //strategy.start();
+                    ReplayTest test = new ReplayTest(d, scheduler);
+                    test.start();
                 }else{
-                    try {
-                        List<String> route_list = Arrays.asList(query.split("&"));
-                        JSONArray device_config = config_json.getJSONArray("DEVICES");
-                        for (int i = 0; i < device_config.length(); i++) {
-                            JSONObject c = device_config.getJSONObject(i);
-                            if (!c.getString("SERIAL").equals(serial))
-                                continue;
-                            String pkg = config_json.getString("PACKAGE");
-                            String ip = "http://" + c.getString("IP");
-                            String pass = "";
-                            if (c.has("PASSWORD")) pass = c.getString("PASSWORD");
-                            if (ip.contains("127.0.0.1"))
-                                ShellUtils2.execCommand("adb -s " + serial + " forward tcp:" + c.getInt("PORT") + " tcp:6161");
-                            Device d = new Device(ip, c.getInt("PORT"), serial, pkg, pass, 0);
-                            scheduler.bind(d);
-                            d.start();
-                            break;
-                        }
-                    }catch (Exception e){
-                        e.printStackTrace();
-                    }
-                    //strategy = new ModelReplay(graphManager, route_list);
-                    //strategy.start();
+                    route_list = route_list.subList(1, route_list.size());
+                    int idx = route_list.get(0).indexOf("=");
+                    route_list.set(0, route_list.get(0).substring(idx+1));
+                    d.setRoute_list(route_list);
+                    ClientAdaptor.stopApp(d, d.current_pkg);
+                    d.start();
                 }
                 return newFixedLengthResponse("replay start");
             }

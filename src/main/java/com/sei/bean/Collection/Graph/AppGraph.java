@@ -62,6 +62,18 @@ public class AppGraph {
         return activityNode.getFragment(hash);
     }
 
+    public FragmentNode getFragment(String activity_hash){
+        int idx = activity_hash.indexOf("_");
+        if (idx == -1) return null;
+        String activity = activity_hash.substring(0, idx);
+        try {
+            int hash = Integer.parseInt(activity_hash.substring(idx + 1));
+            return getFragment(activity, hash);
+        }catch (Exception e){
+            return null;
+        }
+    }
+
     public void transfer_actions(FragmentNode fragmentNode){
         String activity = fragmentNode.getActivity();
         ActivityNode activityNode = getAct(activity);

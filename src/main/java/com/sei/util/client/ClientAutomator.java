@@ -14,23 +14,32 @@ import java.util.List;
 public class ClientAutomator {
 
     public static void main(String[] argv){
-        //Device d = new Device("http://127.0.0.1", 6161, "192.168.59.101:5555", "com.tencent.mm", "monkeymonkey");
+        Device d = new Device("http://127.0.0.1", 9008, "192.168.59.101:5555", "com.tencent.mm", "monkeymonkey",0);
         try{
-            //init(d);
-            //getCurrentTree(d);
-            String x = "abc";
-            System.out.println(x.equals(null));
+            init(d);
+            ViewTree tree = getCurrentTree(d);
+            //for(String s: tree.getClickable_list()){
+//                d.log(s);
+//            }
+            //String x = "abc";
+            //System.out.println(ClientAdaptor.getForeground(d));
         }catch (Exception e){
             e.printStackTrace();
         }
     }
-    public static void init(Device d) throws Exception{
-        String command = CommonUtil.ADB_PATH + "adb -s " + d.serial + " shell uiautomator runtest" +
-                " bundle.jar uiautomator-stub.jar -c com.github.uiautomatorstub.Stub";
-        Process p = Runtime.getRuntime().exec(command);
-        CommonUtil.sleep(2000);
-        String command2 = CommonUtil.ADB_PATH + "adb -s " + d.serial + " forward tcp:" + d.port + " tcp:9008";
-        ShellUtils2.execCommand(command2);
+    public static void init(Device d){
+//        String command = CommonUtil.ADB_PATH + "adb -s " + d.serial + " shell uiautomator runtest" +
+//                " bundle.jar uiautomator-stub.jar -c com.github.uiautomatorstub.Stub";
+        try {
+            String command = CommonUtil.ADB_PATH + "adb -s " + d.serial +
+                    " shell am instrument -w com.github.uiautomator.test/android.support.test.runner.AndroidJUnitRunner";
+            Process p = Runtime.getRuntime().exec(command);
+            CommonUtil.sleep(2000);
+            String command2 = CommonUtil.ADB_PATH + "adb -s " + d.serial + " forward tcp:" + d.port + " tcp:9008";
+            ShellUtils2.execCommand(command2);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
     }
 
 
@@ -48,23 +57,20 @@ public class ClientAutomator {
         String route = d.ip + ":" + d.port + "/jsonrpc/0";
         try {
             String response = ConnectUtil.postJson(route, data);
-            if (response.contains("Success")){
-                //d.log(response);
-                String xml = "view-" + d.serial + ".xml";
-                ShellUtils2.execCommand(CommonUtil.ADB_PATH + "adb -s " + d.serial  + " pull /data/local/tmp/view.xml " + CommonUtil.DIR + xml);
-                ShellUtils2.execCommand(CommonUtil.ADB_PATH + "adb -s " + d.serial + " shell rm /data/local/tmp/view.xml");
-                String content = CommonUtil.readFromFile(CommonUtil.DIR + xml);
-                ViewTree tree = new ViewTree(d, content);
+            org.json.JSONObject jo = new org.json.JSONObject(response);
+            if (jo.has("result")){
+                //d.log(jo.getString("result"));
+                ViewTree tree = new ViewTree(d, jo.getString("result"));
                 return tree;
             }else{
-                d.log(response);
+                //d.log(response);
                 return null;
             }
         }catch (Exception e){
+            init(d);
             e.printStackTrace();
             return null;
         }
-
     }
 
     public static int execute_action(Device d, int code, ViewTree tree, String path){
@@ -73,7 +79,7 @@ public class ClientAutomator {
             ViewNode vn = parse_path(d, tree, path, pxy);
             if (vn == null) return Device.UI.SAME;
 
-            d.log(vn.getResourceID() + "(" + pxy[0] + "," + pxy[1] + ") " );
+            //d.log(vn.getResourceID() + "(" + pxy[0] + "," + pxy[1] + ") " );
             if (pxy[0] > d.screenWidth || pxy[0] < 0)
                 return Device.UI.SAME;
 
@@ -109,12 +115,18 @@ public class ClientAutomator {
                 ClientAdaptor.enterText(d, path);
         }
 
-        String f = ClientAdaptor.getForeground(d);
-        if (!f.contains(ConnectUtil.launch_pkg))
-            return Device.UI.OUT;
-
         CommonUtil.sleep(800);
+        String f = ClientAdaptor.getForeground(d);
+        if (!f.contains(ConnectUtil.launch_pkg)) {
+            //d.log("out to: " + f);
+            return Device.UI.OUT;
+        }
+
         ViewTree newTree = getCurrentTree(d);
+        if (newTree.hasWebview){
+            CommonUtil.sleep(1000);
+            newTree = getCurrentTree(d);
+        }
         if (newTree.root == null) return Device.UI.OUT;
 
         if (!newTree.getActivityName().equals(d.currentTree.getActivityName()) || newTree.getTreeStructureHash() != d.currentTree.getTreeStructureHash()){
