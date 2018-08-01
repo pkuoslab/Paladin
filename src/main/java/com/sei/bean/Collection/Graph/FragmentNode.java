@@ -24,6 +24,7 @@ public class FragmentNode {
     Action action;
     List<Action> intrapaths;
     List<Action> interpaths;
+    List<Action> allPaths;
     List<Action> interAppPaths;
     String color;
     Boolean menuClicked = false;
@@ -41,6 +42,8 @@ public class FragmentNode {
         traverse_over = false;
         intrapaths = new ArrayList<>();
         interpaths = new ArrayList<>();
+        allPaths = new ArrayList<>();
+
         interAppPaths = new ArrayList<>();
 
         click_list = new ArrayList<>();
@@ -88,8 +91,8 @@ public class FragmentNode {
                         edit_fields.add(xpath + "#" + ser);
                 }
             }
-            path_list.add("menu");
         }
+        path_list.add("menu");
     }
 
     public FragmentNode(int hash, List<String> click_list){
@@ -171,10 +174,19 @@ public class FragmentNode {
         return intrapaths;
     }
 
+    public void setAllPaths(List<Action> allPaths){
+        this.allPaths = allPaths;
+    }
+
+    public List<Action> getAllPaths(){
+        return allPaths;
+    }
+
     public List<Action> getInterAppPaths(){ return this.interAppPaths;}
 
     public void setInterAppPaths(List<Action> interAppPaths){ this.interAppPaths = interAppPaths;}
 
+    //为了记录点击顺序，这里把所有path记录到allPaths中
     public void addIntrapath(Action ea) {
         for (Action ee : intrapaths){
             if (ee != null) {
@@ -184,7 +196,8 @@ public class FragmentNode {
                     return;
             }
         }
-        intrapaths.add(ea);
+        //intrapaths.add(ea);
+        allPaths.add(ea);
     }
 
     public void addInterpath(Action ea) {
@@ -192,7 +205,8 @@ public class FragmentNode {
             if (ee.path.equals(ea.path))
                 return;
         }
-        interpaths.add(ea);
+        //interpaths.add(ea);
+        allPaths.add(ea);
     }
 
     public void setIntrapaths(List<Action> intrapaths) {
@@ -232,8 +246,9 @@ public class FragmentNode {
 
     public List<Action> fetch_edges(){
         List<Action> actions = new ArrayList<>();
-        actions.addAll(getInterpaths());
-        actions.addAll(getIntrapaths());
+        //actions.addAll(getInterpaths());
+        //actions.addAll(getIntrapaths());
+        actions.addAll(getAllPaths());
         return actions;
     }
 }

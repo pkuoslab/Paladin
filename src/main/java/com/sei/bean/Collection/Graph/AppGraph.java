@@ -6,13 +6,18 @@ import com.sei.util.CommonUtil;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.sei.util.CommonUtil.log;
+
 public class AppGraph {
     String package_name;
     String home_activity;
     List<ActivityNode> activities;
+    List<String> webFragments;
+
 
     public AppGraph(){
         activities = new ArrayList<>();
+        webFragments = new ArrayList<>();
     }
 
     public ActivityNode getAct(String act){
@@ -74,10 +79,21 @@ public class AppGraph {
         }
     }
 
+    public void setWebFragments(List<String> webFragments){
+        this.webFragments = webFragments;
+    }
+
+    public List<String> getWebFragments(){
+        return this.webFragments;
+    }
+
     public void transfer_actions(FragmentNode fragmentNode){
         String activity = fragmentNode.getActivity();
         ActivityNode activityNode = getAct(activity);
-        if (activityNode == null) return;
+        if (activityNode == null) {
+            fragmentNode.path_list = new ArrayList<>();
+            return;
+        }
         List<String> effective_path = new ArrayList<>();
         List<String> targets = new ArrayList<>();
 
@@ -86,29 +102,50 @@ public class AppGraph {
             return;
         }
 
+        FragmentNode matchNode = null;
+        FragmentNode maxNode = null;
+        double max = 0.0;
         for(FragmentNode node: activityNode.getFragments()){
-            double s = node.calc_similarity(fragmentNode);
-            if (s> CommonUtil.SIMILARITY-0.1){
+            if (node.getStructure_hash() == fragmentNode.getStructure_hash()){
                 node.VISIT = true;
-                //CommonUtil.log("match: " + node.getSignature());
-                List<Action> actions = node.fetch_edges();
-                for (Action action: actions){
-                    if (!effective_path.contains(action.path) &&
-                            !targets.contains(action.target)) {
-                        effective_path.add(action.path);
-                        targets.add(action.target);
-                    }
+                matchNode = node;
+                break;
+            }
+            double s = node.calc_similarity(fragmentNode);
+            if (s> max){
+                max = s;
+                maxNode = node;
+            }
+        }
+
+        if (matchNode == null && max > 0.7){
+            matchNode = maxNode;
+            matchNode.VISIT = true;
+        }
+
+        if (matchNode != null){
+            List<Action> actions = matchNode.fetch_edges();
+            for (Action action: actions){
+                if (!effective_path.contains(action.path)){
+                    effective_path.add(action.path);
+                    targets.add(action.target);
                 }
             }
         }
 
-        if (effective_path.size() != 0)
-            fragmentNode.path_list = new ArrayList<>();
+//        if (effective_path.size() != 0)
+//            fragmentNode.path_list = new ArrayList<>();
+        fragmentNode.path_list = new ArrayList<>();
         for(int i=0; i < effective_path.size(); i++){
             String path = effective_path.get(i);
             int idx = path.indexOf("#");
-            String xpath = path.substring(0,idx);
-            if (fragmentNode.get_Clickable_list().contains(xpath)) {
+            String xpath;
+            if (idx != -1){
+                xpath = path.substring(0,idx);
+            }else {
+                xpath = "menu";
+            }
+            if (xpath.equals("menu") || fragmentNode.get_Clickable_list().contains(xpath)) {
                 fragmentNode.path_list.add(path);
                 fragmentNode.targets.add(targets.get(i));
             }

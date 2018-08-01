@@ -3,6 +3,7 @@ package com.sei.bean.Collection.Stack;
 import com.sei.agent.Device;
 import com.sei.bean.View.Action;
 import com.sei.bean.View.ViewTree;
+import com.sei.server.component.Decision;
 import com.sei.util.CommonUtil;
 import com.sei.util.client.ClientAdaptor;
 import com.sei.util.client.ClientAutomator;
@@ -65,6 +66,15 @@ public class FragmentStack {
         return matchPosition(activity, hash, clickable_list, CommonUtil.SIMILARITY);
     }
 
+    public int getSpecificPosition(ViewTree tree){
+        for (int i=stack.size()-1; i >=0; i--){
+            if (stack.get(i).getStructure_hash() == tree.getTreeStructureHash()){
+                return i;
+            }
+        }
+        return -1;
+    }
+
     public int matchPosition(String activity, int hash, List<String> clickable_list, double sm){
         for (int i =stack.size()-1; i >=0; i--){
             if (stack.get(i).getStructure_hash() == hash)
@@ -99,7 +109,7 @@ public class FragmentStack {
         return null;
     }
 
-    public int recover(Device d, int start) throws Exception{
+    public int recover(Device d, int start, Decision decision) throws Exception{
         int response = Device.UI.OUT;
 
         int limits = 0;
@@ -127,7 +137,12 @@ public class FragmentStack {
                 }
             }
 
-            int position = getPosition(newTree);
+            //int position = getPosition(newTree);
+            int position = -1;
+            if (d.mode == 2){
+                position = getSpecificPosition(newTree);
+            }else
+                position = getPosition(newTree);
 
             if (position == i) {
                 int c = i+1;
@@ -138,7 +153,7 @@ public class FragmentStack {
                 return Device.UI.SAME;
             }else if (position != -1 && position != i+1){
                 if (limits >= 3){
-                    int c = position + 1;
+                    int c = start+1;
                     d.log("continuously back to position " + position + " cut above " + c + "/" + stack.size());
                     for(int j=stack.size()-1; j >= c; j--)
                         stack.remove(j);
@@ -154,6 +169,7 @@ public class FragmentStack {
                     stack.remove(j);
                 d.currentTree = tree;
                 d.newTree = newTree;
+                decision.action = action;
                 // tie isolated fragment
                 //RuntimeFragmentNode top = stack.get(stack.size()-1);
                 //d.graphAdjustor.tie(top, tree, action);

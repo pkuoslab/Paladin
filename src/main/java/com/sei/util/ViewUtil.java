@@ -104,6 +104,10 @@ public class ViewUtil {
     }
 
     public static String getLast(String name){
+        if (name == null){
+            return "";
+        }
+
         if (!name.contains("."))
             return name;
         String[] words = name.split("\\.");

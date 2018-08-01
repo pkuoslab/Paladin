@@ -51,14 +51,14 @@ public class ActivityNode {
                 fc.interpaths = vc.interpaths;
                 fc.intrapaths = vc.intrapaths;
                 fc.menuClicked = vc.menuClicked;
-                fragments.add(fc);
+                //fragments.add(fc);
                 return fc;
             }
         }
         return null;
     }
 
-    public FragmentNode find_Fragment(ViewTree vt){
+    public FragmentNode find_Fragment(ViewTree vt, Boolean REPLAY){
         for (FragmentNode vc : fragments){
             if(vc.getStructure_hash() == vt.getTreeStructureHash())
                 return vc;
@@ -75,11 +75,14 @@ public class ActivityNode {
             if (2 * match / tot > CommonUtil.SIMILARITY){
                 FragmentNode fc = new FragmentNode(vt);
                 //深拷贝点击过的节点
-                for(int i : vc.path_index) {
-                    String path = vc.path_list.get(i);
-                    if (fc.path_list.contains(path)){
-                        int idx = fc.path_list.indexOf(path);
-                        fc.path_index.add(idx);
+                if (!REPLAY) {
+                    for (int i : vc.path_index) {
+                        if (i > vc.path_list.size()) continue;
+                        String path = vc.path_list.get(i);
+                        if (fc.path_list.contains(path)) {
+                            int idx = fc.path_list.indexOf(path);
+                            fc.path_index.add(idx);
+                        }
                     }
                 }
 

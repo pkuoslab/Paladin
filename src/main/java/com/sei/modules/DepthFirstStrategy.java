@@ -60,6 +60,7 @@ public class DepthFirstStrategy implements Strategy{
             device.fragmentStack.pop();
             return new Decision(Decision.CODE.GO, device.fragmentStack.top().getSignature());
         }else {
+            custom(serial);
             return new Decision(Decision.CODE.STOP);
         }
     }
@@ -114,4 +115,6 @@ public class DepthFirstStrategy implements Strategy{
     public void update_graph(Device d, Decision prev_decision, ViewTree currentTree, ViewTree newTree, int response){
         graphAdjustor.update(d, prev_decision.action, currentTree, newTree, response);
     }
+
+    public void custom(String serial){}
 }

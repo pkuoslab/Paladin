@@ -26,11 +26,12 @@ public class CommonUtil {
     public static double SIMILARITY = 0.9;
     public static String DIR = "";
     public static String ADB_PATH = "/home/mike/Android/Sdk/platform-tools/";
-    public static Boolean SCREENSHORT = false;
+    public static Boolean SCREENSHOT = true;
     public static Boolean UITree = true;
     public static Boolean INTENT = false;
     public static String SERIAL = "";
     public static Random random = new Random(8888); //trail : 259
+    private static Boolean UPLOAD = false;
 
 
     public static void main(String[] argv){
@@ -77,7 +78,7 @@ public class CommonUtil {
     }
 
     public static void getSnapshot(ViewTree tree, Device d){
-        if (!SCREENSHORT) return;
+        if (!SCREENSHOT) return;
 
         File dir1 = new File("output");
         if (!dir1.exists())
@@ -165,6 +166,7 @@ public class CommonUtil {
     }
 
     public static void upload(AppGraph appGraph, String current){
+        if (!UPLOAD) return;
         try {
             String content = SerializeUtil.toBase64(appGraph);
             //JSONObject jo = new JSONObject(content);

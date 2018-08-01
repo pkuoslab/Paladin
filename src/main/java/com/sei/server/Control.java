@@ -237,8 +237,10 @@ public class Control extends NanoHTTPD{
                 String pass = "";
                 if (c.has("PASSWORD")) pass = c.getString("PASSWORD");
 
-                if (ip.contains("127.0.0.1"))
-                    ShellUtils2.execCommand("adb -s " + serial + " forward tcp:" + c.getInt("PORT") + " tcp:6161");
+                if (ip.contains("127.0.0.1")) {
+                    //ShellUtils2.execCommand("adb -s " + serial + " forward tcp:" + c.getInt("PORT") + " tcp:6161");
+                    ShellUtils2.execCommand("adb -s " + serial + " forward tcp:7008 tcp:6161");
+                }
 
                 Device d;
                 if (argv.length >0 && argv[0].contains("-r")){

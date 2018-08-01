@@ -9,7 +9,6 @@ import com.sei.util.ClientUtil;
 import com.sei.util.CommonUtil;
 import com.sei.util.ConnectUtil;
 import com.sei.util.SerializeUtil;
-import com.sei.util.client.ClientAdaptor;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -24,7 +23,8 @@ public class GraphAdjustor extends UiTransition{
     String RECENT_INTENT_TIMESTAMP = "";
 
     public GraphAdjustor(String argv){
-        File graph = new File( "./graph.json");
+        String n = "graph-" + ConnectUtil.launch_pkg + ".json";
+        File graph = new File(n);
         if (graph.exists()) load(argv);
 
         if (appGraph == null) {
@@ -54,6 +54,10 @@ public class GraphAdjustor extends UiTransition{
                     reGraph.appendActivity(activityNode);
                 }
 
+                if (new_tree.hasWebview && !REPLAY_MODE){
+                    appGraph.getWebFragments().add(frag_cur.getSignature());
+                }
+
                 return UI.NEW_ACT;
             }
         });
@@ -76,6 +80,9 @@ public class GraphAdjustor extends UiTransition{
 
                 activityNode.appendFragment(frag_cur);
                 CommonUtil.upload(appGraph, new_tree.getActivityName() + "_" + new_tree.getTreeStructureHash());
+                if (new_tree.hasWebview && !REPLAY_MODE){
+                    graph.getWebFragments().add(frag_cur.getSignature());
+                }
                 return UI.OLD_ACT_NEW_FRG;
             }
         });
@@ -107,6 +114,9 @@ public class GraphAdjustor extends UiTransition{
                 activityNode.appendFragment(frag_cur);
                 if (REPLAY_MODE) appGraph.transfer_actions(frag_cur);
                 CommonUtil.upload(appGraph, new_tree.getActivityName() + "_" + new_tree.getTreeStructureHash());
+                if (new_tree.hasWebview && !REPLAY_MODE){
+                    appGraph.getWebFragments().add(frag_cur.getSignature());
+                }
                 return UI.NEW_FRG;
             }
         });
@@ -127,7 +137,7 @@ public class GraphAdjustor extends UiTransition{
     public int update(Device d, Action action, ViewTree currentTree, ViewTree new_tree, int response){
         if (action == null){
             log("device #" + d.serial + "'s first node");
-            locate(currentTree);
+            FragmentNode fragmentNode = locate(currentTree);
             CommonUtil.getSnapshot(currentTree, d);
             return 0;
         }
@@ -162,7 +172,7 @@ public class GraphAdjustor extends UiTransition{
     public int queryGraph(AppGraph graph, Device d, ViewTree currentTree, ViewTree new_tree){
         ActivityNode actNode = graph.getAct(new_tree.getActivityName());
         String name = new_tree.getActivityName() + "_" + new_tree.getTreeStructureHash();
-        if (new_tree.hasWebview){
+        if (new_tree.hasWebview && !appGraph.webFragments.contains(name)){
             d.log("detect webview " + new_tree.getActivityName() + "_" + new_tree.getTreeStructureHash());
         }
 
@@ -172,14 +182,17 @@ public class GraphAdjustor extends UiTransition{
                 CommonUtil.getSnapshot(new_tree, d);
                 return UI.NEW_ACT;
             }else{
-                FragmentNode fragmentNode = actNode.find_Fragment(new_tree);
+                FragmentNode fragmentNode = actNode.find_Fragment(new_tree, REPLAY_MODE);
                 if (fragmentNode == null){
                     log("device #" + d.serial + ": old activity brand new fragment " + name);
                     CommonUtil.getSnapshot(new_tree, d);
                     return UI.OLD_ACT_NEW_FRG;
                 }else{
                     if (actNode.getFragment(fragmentNode.structure_hash) == null){
-                        actNode.fragments.add(fragmentNode);
+                        actNode.appendFragment(fragmentNode);
+                        if (REPLAY_MODE) {
+                            appGraph.transfer_actions(fragmentNode);
+                        }
                         CommonUtil.getSnapshot(new_tree, d);
                     }
                     log("device #" + d.serial + ": old activity and old fragment " + name);
@@ -188,15 +201,19 @@ public class GraphAdjustor extends UiTransition{
 
             }
         }else{
-            FragmentNode fragmentNode = actNode.find_Fragment(new_tree);
+            FragmentNode fragmentNode = actNode.find_Fragment(new_tree, REPLAY_MODE);
             if(fragmentNode == null){
                 log("device #" + d.serial + ": brand new fragment " + name);
                 CommonUtil.getSnapshot(new_tree, d);
                 return UI.NEW_FRG;
             }else{
                 log("device #" + d.serial + ": old fragment " + name);
-                if (actNode.getFragment(fragmentNode.structure_hash) == null) {
-                    actNode.fragments.add(fragmentNode);
+                if (!actNode.getFragments().contains(fragmentNode)) {
+                    actNode.appendFragment(fragmentNode);
+                    d.log("generated old fragment " + name);
+                    if (REPLAY_MODE) {
+                        appGraph.transfer_actions(fragmentNode);
+                    }
                     CommonUtil.getSnapshot(new_tree, d);
                 }
                 return UI.OLD_FRG;
@@ -207,7 +224,8 @@ public class GraphAdjustor extends UiTransition{
     @Override
     public void save(){
         try {
-            File file = new File("graph.json");
+            String n = "graph-" + ConnectUtil.launch_pkg + ".json";
+            File file = new File(n);
             FileWriter writer = new FileWriter(file);
             String content = SerializeUtil.toBase64(appGraph);
             writer.write(content);
@@ -234,8 +252,8 @@ public class GraphAdjustor extends UiTransition{
                 reGraph = new AppGraph();
                 reGraph.setPackage_name(ConnectUtil.launch_pkg);
             }
-
-            String graphStr = CommonUtil.readFromFile("graph.json");
+            String n = "graph-" + ConnectUtil.launch_pkg + ".json";
+            String graphStr = CommonUtil.readFromFile(n);
             appGraph = (AppGraph) SerializeUtil.toObject(graphStr, AppGraph.class);
             for(ActivityNode actNode: appGraph.getActivities()){
                 for(FragmentNode frgNode: actNode.getFragments()) {
@@ -279,7 +297,7 @@ public class GraphAdjustor extends UiTransition{
             return fragmentNode;
         }
 
-        fragmentNode = activityNode.find_Fragment(tree);
+        fragmentNode = activityNode.find_Fragment(tree, REPLAY_MODE);
 
         if (fragmentNode == null){
             log("fail to locate " + tree.getActivityName() + "_" + tree.getTreeStructureHash());
@@ -289,6 +307,7 @@ public class GraphAdjustor extends UiTransition{
         }
 
         if (activityNode.getFragment(tree.getTreeStructureHash()) == null){
+            if (REPLAY_MODE) appGraph.transfer_actions(fragmentNode);
             activityNode.appendFragment(fragmentNode);
         }
 
@@ -315,6 +334,28 @@ public class GraphAdjustor extends UiTransition{
         }else
             currentNode.setTraverse_over(true);
         return action;
+    }
+
+    public Action getEdgetActionInOrder(Device d, ViewTree currentTree){
+        FragmentNode currentNode = locate(currentTree);
+        Action action = null;
+        int ser = currentNode.path_index.size();
+        if (ser < currentNode.path_list.size()){
+            currentNode.path_index.add(ser);
+            String path = currentNode.path_list.get(ser);
+            log(currentNode.getSignature() +  " path: " + currentNode.path_index.size() + "/" + currentNode.path_list.size());
+            if (currentNode.edit_fields.contains(path))
+                action = new Action(path, Action.action_list.ENTERTEXT);
+            else if (path.equals("menu")){
+                action = new Action(path, Action.action_list.MENU);
+            }else
+                action = new Action(path, Action.action_list.CLICK);
+            action.setTarget(currentNode.targets.get(ser));
+            return action;
+        }else{
+            currentNode.setTraverse_over(true);
+            return action;
+        }
     }
 
     public Action getEdgeAction(Device d, ViewTree currentTree){
@@ -356,7 +397,8 @@ public class GraphAdjustor extends UiTransition{
     public String getSerIntent(Device d){
         if (!CommonUtil.INTENT) return null;
 
-        String record = ConnectUtil.sendHttpGet(d.ip + "/intent");
+        //String record = ConnectUtil.sendHttpGet(d.ip + "/intent");
+        String record = ConnectUtil.sendHttpGet("http://127.0.0.1:7008/intent");
         int idx = record.indexOf("$");
         if (idx == -1) return null;
         String timestamp = record.substring(0, idx);
@@ -398,10 +440,7 @@ public class GraphAdjustor extends UiTransition{
 
         ActivityNode actNode = graph.getAct(tree.getActivityName());
         if (actNode == null) return null;
-        FragmentNode fragmentNode = actNode.find_Fragment(tree);
-        if (fragmentNode != null && !actNode.fragments.contains(fragmentNode)){
-            actNode.fragments.add(fragmentNode);
-        }
+        FragmentNode fragmentNode = actNode.find_Fragment(tree, REPLAY_MODE);
         return fragmentNode;
     }
 

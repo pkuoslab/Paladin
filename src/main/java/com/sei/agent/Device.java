@@ -8,6 +8,7 @@ import com.sei.bean.View.Action;
 import com.sei.bean.View.ViewTree;
 import com.sei.server.component.Decision;
 import com.sei.server.component.Scheduler;
+import com.sei.util.ClientUtil;
 import com.sei.util.CommonUtil;
 import com.sei.util.ConnectUtil;
 import com.sei.util.ShellUtils2;
@@ -92,14 +93,31 @@ public class Device extends Thread{
 
     @Override
     public void run(){
-        int response;
+        int response = UI.SAME;
 
         try {
             initiate();
-            Action action = null;
-            Decision decision = new Decision(Decision.CODE.CONTINUE, action);
-            decision = scheduler.update(serial, currentTree, currentTree, decision, UI.NEW);
-            response = execute_decision(decision);
+            Decision decision = null;
+
+            if (mode != MODE.REPLAY) {
+                if (fragmentStack == null) {
+                    fragmentStack = new FragmentStack();
+                    RuntimeFragmentNode rfn = new RuntimeFragmentNode(currentTree);
+                    fragmentStack.add(rfn);
+                } else {
+                    Action action = null;
+                    decision = new Decision(Decision.CODE.GO, action);
+                    response = recover_stack(decision);
+                }
+            }
+
+            if (decision == null) {
+                Action action = null;
+                decision = new Decision(Decision.CODE.CONTINUE, action);
+                decision = scheduler.update(serial, currentTree, currentTree, decision, UI.NEW);
+                response = execute_decision(decision);
+            }
+
             while(Exit == false){
                 decision = scheduler.update(serial, currentTree, newTree, decision, response);
                 currentTree = newTree;
@@ -118,6 +136,9 @@ public class Device extends Thread{
     }
 
     private void initiate() throws Exception{
+        if (mode == MODE.DFSGraph){
+            ClientAdaptor.stopApp(this, ConnectUtil.launch_pkg);
+        }
         ClientAdaptor.startApp(this, ConnectUtil.launch_pkg);
         if (ClientAdaptor.checkPermission(this)) enter();
         currentTree = getCurrentTree();
@@ -125,14 +146,7 @@ public class Device extends Thread{
 
         if (checkLogin(currentTree)) currentTree = getCurrentTree();
 
-        if (mode == MODE.REPLAY) return;
-
-        if (fragmentStack == null) {
-            fragmentStack = new FragmentStack();
-            RuntimeFragmentNode rfn = new RuntimeFragmentNode(currentTree);
-            fragmentStack.add(rfn);
-        } else
-            recover_stack();
+        //if (mode == MODE.REPLAY) return;
     }
 
 
@@ -173,7 +187,7 @@ public class Device extends Thread{
                 log("need restart stack size: " + fragmentStack.getSize());
                 enter();
             }
-            response = recover_stack();
+            response = recover_stack(decision);
             if (response == UI.NEW || response == UI.PIDCHANGE){
                 if (update_stack(null) == UI.OUT) response = UI.OUT;
             }
@@ -243,7 +257,11 @@ public class Device extends Thread{
         if (checkLogin(tree)) tree = getCurrentTree();
 
         FragmentNode frg = graphAdjustor.searchFragment(tree);
-        int p = fragmentStack.getPosition(tree);
+        int p;
+        if (mode == MODE.DFSGraph){
+            p = fragmentStack.getSpecificPosition(tree);
+        }else
+            p = fragmentStack.getPosition(tree);
         
         if ((frg == null || !frg.isTraverse_over()) && p == -1){
             RuntimeFragmentNode rfn = new RuntimeFragmentNode(tree);
@@ -255,7 +273,7 @@ public class Device extends Thread{
         return 1;
     }
 
-    public int recover_stack() throws Exception{
+    public int recover_stack(Decision decision) throws Exception{
         if (currentTree == null || currentTree.root == null)
             return UI.OUT;
 
@@ -269,12 +287,12 @@ public class Device extends Thread{
         if (p != -1){
             String s = currentTree.getActivityName() + "_" + currentTree.getTreeStructureHash();
             log("fragment " +  s + " in stack, recover " + p + "/" + fragmentStack.getSize());
-            return fragmentStack.recover(this, p);
+            return fragmentStack.recover(this, p, decision);
         }
 
         p = go_back(2);
         if (p != -1 && p != UI.OUT)
-            return fragmentStack.recover(this, p);
+            return fragmentStack.recover(this, p, decision);
         else
             return UI.OUT;
     }

@@ -12,6 +12,7 @@ import com.sei.modules.DepthFirstStrategy;
 import com.sei.modules.ModelReplay;
 import com.sei.modules.Strategy;
 import com.sei.util.CommonUtil;
+import com.sei.util.ConnectUtil;
 import com.sei.util.SerializeUtil;
 import com.sei.util.ShellUtils2;
 
@@ -31,7 +32,8 @@ public class Scheduler {
     public Scheduler(String argv, Map<String, Device> devices){
         //devices = new HashMap<>();
         this.devices = devices;
-        stacks = load();
+        if (!argv.contains("-r"))
+            stacks = load();
         graphAdjustor = new GraphAdjustor(argv);
         ErrorLog = new HashMap<>();
         strategys = new Strategy[]{new ModelReplay(graphAdjustor, devices),
@@ -78,9 +80,9 @@ public class Scheduler {
     public void save(){
         try {
             CommonUtil.log("save stacks");
-            File file = new File("stacks.json");
+            String n = "stacks-" + ConnectUtil.launch_pkg + ".json";
+            File file = new File(n);
             FileWriter writer = new FileWriter(file);
-            //List<FragmentStack> stacks = new ArrayList<>();
             Map<String, FragmentStack> stacks = new HashMap<>();
             for(String key : devices.keySet()) {
                 stacks.put(key, devices.get(key).fragmentStack);
@@ -94,9 +96,10 @@ public class Scheduler {
     }
 
     public Map<String, FragmentStack> load(){
-        File stackf = new File( "./stacks.json");
+        String n = "stacks-" + ConnectUtil.launch_pkg + ".json";
+        File stackf = new File( n);
         if (!stackf.exists()) return null;
-        String str = CommonUtil.readFromFile("./stacks.json");
+        String str = CommonUtil.readFromFile(n);
         Map<String, FragmentStack> stacks = JSON.parseObject(str, new TypeReference<Map<String, FragmentStack>>(){});
         CommonUtil.log("stack number: " + stacks.size());
         return stacks;

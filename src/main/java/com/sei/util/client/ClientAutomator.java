@@ -16,8 +16,8 @@ public class ClientAutomator {
     public static void main(String[] argv){
         Device d = new Device("http://127.0.0.1", 9008, "192.168.59.101:5555", "com.tencent.mm", "monkeymonkey",0);
         try{
-            init(d);
-            ViewTree tree = getCurrentTree(d);
+            //init(d);
+            //ViewTree tree = getCurrentTree(d);
             //for(String s: tree.getClickable_list()){
 //                d.log(s);
 //            }
