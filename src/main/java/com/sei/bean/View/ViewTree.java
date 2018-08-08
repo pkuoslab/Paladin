@@ -91,20 +91,19 @@ public class ViewTree implements Serializable {
 
 
             relate_hash_string = now.calStringWithoutPosition();
-
-
+            now.total_view = 1;
 
             // not include webview content
             if (rootView.attr("class").contains("webkit") ||
                     rootView.attr("class").contains("WebView")){
                 hasWebview = true;
+                now.setNodeRelateHash(relate_hash_string.hashCode());
                 return now;
             }
         }else{
             now.xpath = "";
             relate_hash_string = "";
         }
-        now.total_view = 1;
         Elements children = rootView.children();
         List<ViewNode> child_list = new ArrayList<>();
         for(Element child: children){
@@ -236,19 +235,6 @@ public class ViewTree implements Serializable {
         return clickable_list;
     }
 
-    public int count_leaves(){
-        ArrayList<ViewNode> stack = new ArrayList<>();
-        stack.addAll(root.getChildren());
-        int tot = 0;
-        while(!stack.isEmpty()){
-            ViewNode node = stack.remove(0);
-            if (node.getChildren().size() == 0)
-                tot++;
-            else
-                stack.addAll(node.getChildren());
-        }
-        return tot;
-    }
 
     public List<ViewNode> fetch_clickable_nodes(){
         ArrayList<String> list = new ArrayList<>();
@@ -271,28 +257,6 @@ public class ViewTree implements Serializable {
         return clickable_nodes;
     }
 
-
-    public static double calc_similarity(ViewTree new_tree, ViewTree old_tree){
-        float match = 0f;
-        for (String s : new_tree.getClickable_list()){
-            if (old_tree.getClickable_list().contains(s)) {
-                match += 1;
-            }
-        }
-        int tot = (new_tree.getClickable_list().size() + old_tree.getClickable_list().size());
-        return 2 * match / tot;
-    }
-
-    public double calc_similarity(List<String> clickable_list2){
-        float match = 0f;
-        for(String s : clickable_list2){
-            if (clickable_list.contains(s))
-                match += 1;
-        }
-
-        int tot = clickable_list2.size() + clickable_list.size();
-        return 2 * match / tot;
-    }
 
 
 

@@ -80,7 +80,7 @@ public class ConnectUtil {
 
         int HttpResult = con.getResponseCode();
         if (HttpResult == HttpURLConnection.HTTP_OK) {
-            InputStreamReader is = new InputStreamReader((InputStream) con.getContent());
+            InputStreamReader is = new InputStreamReader((InputStream) con.getContent(), "utf-8");
             BufferedReader bf = new BufferedReader(is);
             StringBuilder sb = new StringBuilder();
             String line;
