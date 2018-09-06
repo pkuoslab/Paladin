@@ -4,7 +4,7 @@
 ## 1.使用
 * 1.编译：使用gradle(https://gradle.org/)
 在项目目录下使用命令行: gradle fatjar，即可在build/libs下编译成jar。
-* 2.部署，将uiautomator.apk和uiautomator-androidTest.apk安装于测试手机，设置config.json中的adb路径与测试apk包名，在pc端运行: `java -jar paladin.jar`即可开始遍历。
+* 2.部署，将apks/uiautomator.apk和apks/uiautomator-androidTest.apk安装于测试手机，设置config.json中的adb路径，测试手机序列号与测试apk包名，在pc端运行: `java -jar paladin.jar`即可开始遍历。
 * 3.保存测试图，发送http://127.0.0.1:5700/save即可保存当前遍历得到的图。
 
 ## 2.主要文件
