@@ -62,6 +62,7 @@ public class Control extends NanoHTTPD{
                 }catch (Exception e){
                     e.printStackTrace();
                 }
+
                 return newFixedLengthResponse(jo.toString());
             }
         });

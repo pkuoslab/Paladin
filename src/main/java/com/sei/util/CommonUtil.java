@@ -26,8 +26,8 @@ public class CommonUtil {
     public static double SIMILARITY = 0.9;
     public static String DIR = "";
     public static String ADB_PATH = "/home/mike/Android/Sdk/platform-tools/";
-    public static Boolean SCREENSHOT = true;
-    public static Boolean UITree = true;
+    public static Boolean SCREENSHOT = false;
+    public static Boolean UITree = false;
     public static Boolean INTENT = false;
     public static String SERIAL = "";
     public static Random random = new Random(8888); //trail : 259

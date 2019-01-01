@@ -1,18 +1,76 @@
-# Paladin文档
+# Paladin
 
----
-## 1.使用
-* 1.编译：使用gradle(https://gradle.org/)
-在项目目录下使用命令行: gradle fatjar，即可在build/libs下编译成jar。
-* 2.部署，将apks/uiautomator.apk和apks/uiautomator-androidTest.apk安装于测试手机，设置config.json中的adb路径，测试手机序列号与测试apk包名，在pc端运行: `java -jar paladin.jar`即可开始遍历。
-* 3.保存测试图，发送http://127.0.0.1:5700/save即可保存当前遍历得到的图。
-
-## 2.主要文件
-* 1. 程序以server/Control.java为入口，并通过服务器与外界交互
-* 2. server/component/Scheduler.java负责作出决策
-* 3. agent/Device.java负责执行决策，并将结果反馈给Scheduler.java
-* 4. modules/*.java为不同的决策模块
-* 5. bean/Collection/Graph内的文件为遍历图的抽象结构, bean/View/内的文件为抽象UI结构
+## Introduction
+This project implements a tool for automated generation of test cases for Android apps.
+>Y. Ma, Y. Huang, Z.Hu, X.Xiao, X.Liu Paladin: Automated Generation of Reproducible Test Cases for Android Apps. In *HotMobile*, 2019
 
 
+Paladin consists of five parts: 
+* packed `paladin.jar`
+* a configuration file `config.json` 
+* two andriod apk:  `uiautomator.apk` and `uiautomator-androidTest.apk`. 
 
+
+Paladin depends on the java environment and the Android SDK. It has been tested in ubuntu 16.04, mac and Windows 10 environment.
+
+## Setup
+
+### config.json
+
+config.json is like this, you need to modify it before testing.
+
+```json
+{
+    "ADB_PATH": "D:/android/SDK/platform-tools/",
+    "DEFAULT_PORT": 5700,
+    "BACKEND": "UIAutomator",
+    "DEVICES": [
+        {
+            "IP": "127.0.0.1",
+            "SERIAL": "d6b534d7",
+            "PORT": 6161
+        }
+    ],
+    "PACKAGE": "com.tencent.mm"
+}
+```
+
+- "ADB_PATH": The path of ADB (need to install Android SDK)
+- "DEFAULT_PORT": Port to interact with paladin control terminal
+- "BACKEND": Choose`"UIAutomator"`
+- "DEVICES": A list of your test phone
+  - "IP": ip of test phone, `"127.0.0.1"` is recommended.
+  - "SERIAL": The serial number of your test phone. use `adb devices` to list devices availabe.
+  - "PORT": If you use more than one test phone, this field should be mutually different. 
+- "PACKAGE": Package name of the app you want to test.
+
+### paladin.jar
+
+```shell
+git clone 
+cd paladin
+gradle fatjar
+cd build/libs/
+```
+
+### Test phone setup
+- Install  `uiautomator.apk` and `uiautomator-androidTest.apk`
+
+## Testing
+
+### Start testing
+
+- Install your testing app on your test phone, modify `config.json`.
+- Use `java -jar paladin.jar`  to start paladin.
+
+### Save graph
+
+Enter `http://127.0.0.1:5700/save` in your browser to save the graph of your testing app. The graph file is in the place where you run `paladin.jar` . You can save for many times since the graph may update when running. 
+
+### List activities
+
+Enter `http://127.0.0.1:5700/list` in your browser to see how many activities paladin has found.
+
+### Stop testing
+
+Enter `http://127.0.0.1:5700/stop` in your browser to stop paladin. You can restart your work by using `java -jar paladin.jar`. Paladin will start from where you saved the graph.

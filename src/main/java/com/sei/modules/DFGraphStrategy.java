@@ -18,19 +18,17 @@ public class DFGraphStrategy extends DepthFirstStrategy{
 
     @Override
     public Action select_action(Device d, ViewTree tree){
-        //改为选择边进行遍历
         Action action = this.graphAdjustor.getEdgetActionInOrder(d, tree);
-        //通知测webview的程序即将要点击
+
         List<String> webFragments = graphAdjustor.appGraph.getWebFragments();
         if (action != null && webFragments.contains(action.target)){
-            //点击后即将出现webview
+
         }else{
-            //点击后无webview
+
         }
         String name = tree.getActivityName() + "_" + tree.getTreeStructureHash();
         if (webFragments.contains(name)){
-            //当前测试的是webview
-            //通知测试webview的程序，并等待测试结束
+
         }
         return action;
     }
