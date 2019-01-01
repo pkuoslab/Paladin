@@ -5,7 +5,7 @@ This project implements a tool for automated generation of test cases for Androi
 >Y. Ma, Y. Huang, Z.Hu, X.Xiao, X.Liu Paladin: Automated Generation of Reproducible Test Cases for Android Apps. In *HotMobile*, 2019
 
 
-Paladin consists of five parts: 
+Paladin consists of: 
 * packed `paladin.jar`
 * a configuration file `config.json` 
 * two andriod apk:  `uiautomator.apk` and `uiautomator-androidTest.apk`. 
