@@ -78,4 +78,4 @@ Enter `http://127.0.0.1:5700/list` in your browser to see how many activities pa
 
 ### Stop testing
 
-Enter `http://127.0.0.1:5700/stop` in your browser to stop paladin. You can restart your work by using `java -jar paladin.jar`. Paladin will start from where you saved the graph.
+Enter `http://127.0.0.1:5700//stop?serial=xxx` in your browser to stop paladin. You can restart your work by using `java -jar paladin.jar`. Paladin will start from where you saved the graph.
