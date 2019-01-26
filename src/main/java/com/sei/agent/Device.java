@@ -126,6 +126,7 @@ public class Device extends Thread{
 
             //结束前反馈STOP命令，使scheduler将其在设备运行表中删除
             scheduler.update(serial, currentTree, newTree, decision, response);
+            log("serial: " + serial + " stopped");
         }catch (Exception e){
             e.printStackTrace();
         }

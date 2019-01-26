@@ -196,7 +196,7 @@ public class FragmentNode {
                     return;
             }
         }
-        //intrapaths.add(ea);
+        intrapaths.add(ea);
         allPaths.add(ea);
     }
 
@@ -205,7 +205,7 @@ public class FragmentNode {
             if (ee.path.equals(ea.path))
                 return;
         }
-        //interpaths.add(ea);
+        interpaths.add(ea);
         allPaths.add(ea);
     }
 

@@ -32,13 +32,12 @@ mv build/libs/config.json config.json
 
 ### Step 3. Modify config.json
 
-config.json is like this, you need to modify it before testing.
-
 ```json
 {
     "ADB_PATH": "D:/android/SDK/platform-tools/",
     "DEFAULT_PORT": 5700,
     "BACKEND": "UIAutomator",
+    "SCREENSHOT" : false,
     "DEVICES": [
         {
             "IP": "127.0.0.1",
@@ -53,6 +52,7 @@ config.json is like this, you need to modify it before testing.
 - **"ADB_PATH"**: The path of ADB (need to install Android SDK)
 - "DEFAULT_PORT": Port to interact with paladin control terminal
 - "BACKEND": Choose`"UIAutomator"`
+- "SCREENSHOT": set true to save screenshot, the screenshot will be saved under ./output/PACKAGE_NAME/
 - "DEVICES": A list of your test phone
   - "IP": ip of test phone, `"127.0.0.1"` is recommended.
   - **"SERIAL"**: The serial number of your test phone. Use `adb devices` to list devices availabe.
@@ -70,12 +70,19 @@ config.json is like this, you need to modify it before testing.
 
 ### Save graph
 
-Enter `http://127.0.0.1:5700/save` in your browser to save the graph of your testing app. The graph file is in the place where you run `paladin.jar` . You can save for many times since the graph may update when running. 
+request `http://127.0.0.1:5700/save` to save the graph of your testing app. The graph file is under the path where you run `paladin.jar`. 
 
 ### List activities
 
-Enter `http://127.0.0.1:5700/list` in your browser to see how many activities paladin has found.
+request `http://127.0.0.1:5700/list` to see how many activities paladin has found.
 
 ### Stop testing
 
-Enter `http://127.0.0.1:5700//stop?serial=xxx` in your browser to stop paladin. You can restart your work by using `java -jar paladin.jar`. Paladin will start from where you saved the graph.
+request `http://127.0.0.1:5700/stop?serial=xxx` to stop paladin. You can restart your work by using `java -jar paladin.jar`. Paladin will start from where you saved the graph.
+
+### Replay
+- stop testing before replay
+- or use `java -jar paladin.jar -p` to replay
+- request `http://127.0.0.1:5700/replay?serial=xxx&nodes=activity_id` to generate a test case that reaches a specific page. The target page is identified by a unique id. To find all available id and corresponding screenshot, you can save screenshot while testing by setting `config.json`.  
+- you can also request `http://127.0.0.1:5700/replay?serial=xxx&nodes=all` to generate a group of test cases that cover all available pages in the graph.
+ 

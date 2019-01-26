@@ -15,6 +15,7 @@ import com.sei.util.CommonUtil;
 import com.sei.util.ConnectUtil;
 import com.sei.util.SerializeUtil;
 import com.sei.util.ShellUtils2;
+import com.sun.org.apache.xpath.internal.operations.Bool;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -44,10 +45,10 @@ public class Scheduler {
         }
     }
 
-    public void bind(Device d){
+    public Boolean bind(Device d){
         if (devices.containsKey(d.serial)){
             log(d.serial, " has not finished");
-            return;
+            return false;
         }
         devices.put(d.serial, d);
         //int id = devices.size()-1;
@@ -57,6 +58,7 @@ public class Scheduler {
         else{
             d.bind(this, graphAdjustor, stacks.get(d.serial));
         }
+        return true;
     }
 
     // 作出决策，继续点击或调度

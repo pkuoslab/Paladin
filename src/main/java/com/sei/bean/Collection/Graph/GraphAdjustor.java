@@ -543,6 +543,7 @@ public class GraphAdjustor extends UiTransition{
         ActivityNode actNode = appGraph.getAct(tree.getActivityName());
         if (actNode == null){
             log(tree.getActivityName() + " not found");
+            return null;
         }
         return actNode.find_Fragment_in_graph(tree);
     }

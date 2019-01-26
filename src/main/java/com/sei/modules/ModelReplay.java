@@ -101,8 +101,11 @@ public class ModelReplay implements Strategy{
             actions = graphAdjustor.BFS(start, end);
             graphAdjustor.resetColor();
             if (actions != null) {
+                log("search path success!");
                 d.visits.add(start.getSignature());
                 return actions;
+            }else{
+                log("search fail");
             }
         }
 

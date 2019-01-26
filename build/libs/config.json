@@ -1,1 +1,19 @@
-{"ADB_PATH": "/Users/mike/Sdk/Android/platform-tools/", "DEFAULT_PORT": 5700, "BACKEND": "UIAutomator","DEVICES": [{"IP": "127.0.0.1", "SERIAL":"192.168.56.101:5555", "PORT" : 6161}, {"IP": "127.0.0.1", "SERIAL":"192.168.59.102:5555", "PORT" : 6162}], "PACKAGE": "com.tencent.mm"}
+{
+  "ADB_PATH": "/Users/mike/Sdk/Android/platform-tools/",
+  "DEFAULT_PORT": 5700,
+  "BACKEND": "UIAutomator",
+  "SCREENSHOT": true,
+  "DEVICES": [
+    {
+      "IP": "127.0.0.1",
+      "SERIAL": "192.168.56.101:5555",
+      "PORT": 6161
+    },
+    {
+      "IP": "127.0.0.1",
+      "SERIAL": "192.168.59.102:5555",
+      "PORT": 6162
+    }
+  ],
+  "PACKAGE": "com.tencent.mm"
+}

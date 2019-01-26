@@ -71,7 +71,9 @@ public class Control extends NanoHTTPD{
             @Override
             public Response onRequest(IHTTPSession session) {
                 // parameter format : /replay?serial=xxx&nodes=xxx_xxx&xxx_xxx
-
+                if (session.getQueryParameterString() == null){
+                    return newFixedLengthResponse("format: replay?serial=xxx&nodes=xxx");
+                }
                 String query = session.getQueryParameterString().substring(7);
                 List<String> route_list = Arrays.asList(query.split("&"));
                 String serial = route_list.get(0);
@@ -94,7 +96,8 @@ public class Control extends NanoHTTPD{
                             ShellUtils2.execCommand("adb -s " + serial + " forward tcp:" + c.getInt("PORT") + " tcp:6161");
                         d = new Device(ip, c.getInt("PORT"), serial, pkg, pass, 0);
                         //d.setRoute_list(route_list);
-                        scheduler.bind(d);
+                        if (!scheduler.bind(d))
+                            return newFixedLengthResponse(serial + " still running?");
                         //ClientAdaptor.stopApp(d, pkg);
                         //d.start();
                         break;
@@ -135,8 +138,11 @@ public class Control extends NanoHTTPD{
             @Override
             public Response onRequest(IHTTPSession session) {
                 // parameter format : /stop?serial=xxx
+                if (session.getQueryParameterString() == null){
+                    return newFixedLengthResponse("format: stop?serial=xxx");
+                }
                 String query = session.getQueryParameterString().substring(7);
-                log("stop device: " + query);
+                //log("stop device: " + query);
                 if(devices.containsKey(query)){
                     devices.get(query).Exit = true;
                     devices.remove(query);
@@ -224,6 +230,10 @@ public class Control extends NanoHTTPD{
                 if (argv[0].contains("-p")) return;
             }else
                 scheduler = new Scheduler("", devices);
+
+            if (config_json.has("SCREENSHOT")){
+                CommonUtil.SCREENSHOT = config_json.getBoolean("SCREENSHOT");
+            }
 
             for(int i=0; i < device_config.length(); i++){
                 JSONObject c = device_config.getJSONObject(i);
