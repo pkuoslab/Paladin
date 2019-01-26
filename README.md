@@ -81,6 +81,7 @@ request `http://127.0.0.1:5700/list` to see how many activities paladin has foun
 request `http://127.0.0.1:5700/stop?serial=xxx` to stop paladin. You can restart your work by using `java -jar paladin.jar`. Paladin will start from where you saved the graph.
 
 ### Replay
+The saved graph file is used to replay
 - stop testing before replay
 - or use `java -jar paladin.jar -p` to replay
 - request `http://127.0.0.1:5700/replay?serial=xxx&nodes=activity_id` to generate a test case that reaches a specific page. The target page is identified by a unique id. To find all available id and corresponding screenshot, you can save screenshot while testing by setting `config.json`.  
