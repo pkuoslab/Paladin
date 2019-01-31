@@ -82,7 +82,7 @@ request `http://127.0.0.1:5700/stop?serial=xxx` to stop paladin. You can restart
 
 ### Replay
 The saved graph file is used to replay
-- use `Ctril+C` to stop exploration
+- use `Ctrl+C` to stop exploration
 - use `java -jar paladin.jar -p` to start replay
 - request `http://127.0.0.1:5700/replay?serial=xxx&nodes=activity_id` to generate a test case that reaches a specific page. The target page is identified by a unique id. To find all available id and corresponding screenshot, you can save screenshot while testing by setting `config.json`.  
 - you can also request `http://127.0.0.1:5700/replay?serial=xxx&nodes=all` to generate a group of test cases that cover all available pages in the graph.
