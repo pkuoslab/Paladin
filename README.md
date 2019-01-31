@@ -10,8 +10,8 @@ Paladin consists of:
 * a configuration file `config.json` 
 * two andriod apk:  `uiautomator.apk` and `uiautomator-androidTest.apk`. 
 
-
-Paladin depends on the java environment and the Android SDK. It has been tested in ubuntu 16.04, mac and Windows 10 environment.
+Requirements: jdk1.8, Android SDK(v26.1.1+), gradle(v4.10.2+)  
+Paladin has been tested in ubuntu 16.04, mac and Windows 10 environment.
 
 ## Setup
 
@@ -82,8 +82,8 @@ request `http://127.0.0.1:5700/stop?serial=xxx` to stop paladin. You can restart
 
 ### Replay
 The saved graph file is used to replay
-- stop testing before replay
-- or use `java -jar paladin.jar -p` to replay
+- use `Ctril+C` to stop exploration
+- use `java -jar paladin.jar -p` to start replay
 - request `http://127.0.0.1:5700/replay?serial=xxx&nodes=activity_id` to generate a test case that reaches a specific page. The target page is identified by a unique id. To find all available id and corresponding screenshot, you can save screenshot while testing by setting `config.json`.  
 - you can also request `http://127.0.0.1:5700/replay?serial=xxx&nodes=all` to generate a group of test cases that cover all available pages in the graph.
  
