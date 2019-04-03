@@ -325,6 +325,7 @@ public class GraphAdjustor extends UiTransition{
             log(currentNode.getSignature() +  " path: " + currentNode.path_index.size() + "/" + currentNode.path_list.size());
 
             String path = currentNode.path_list.get(ser);
+            log("next path to act:" + path);
             if (currentNode.edit_fields.contains(path)) {
                 action = new Action(path, Action.action_list.ENTERTEXT);
             }else if (path.equals("menu")){

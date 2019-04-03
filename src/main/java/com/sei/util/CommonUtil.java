@@ -8,10 +8,7 @@ import com.sei.util.client.ClientAdaptor;
 import jdk.jfr.events.ExceptionThrownEvent;
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
+import java.io.*;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.List;
@@ -26,12 +23,13 @@ public class CommonUtil {
     public static double SIMILARITY = 0.9;
     public static String DIR = "";
     public static String ADB_PATH = "/home/mike/Android/Sdk/platform-tools/";
-    public static Boolean SCREENSHOT = false;
-    public static Boolean UITree = false;
+    public static Boolean SCREENSHOT = true;
+    public static Boolean UITree = true;
     public static Boolean INTENT = false;
     public static String SERIAL = "";
     public static Random random = new Random(8888); //trail : 259
     private static Boolean UPLOAD = false;
+    public static Boolean WEBVIEW = false;
 
 
     public static void main(String[] argv){
@@ -74,6 +72,24 @@ public class CommonUtil {
         }catch(Exception e){
             e.printStackTrace();
             return "";
+        }
+    }
+
+    public static void writeToFile(String file, String content) {
+        BufferedWriter out = null;
+        try {
+            out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file)));
+            out.write(content);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if(out != null){
+                    out.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 

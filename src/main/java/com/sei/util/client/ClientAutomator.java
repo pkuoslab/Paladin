@@ -8,6 +8,7 @@ import com.sei.bean.View.ViewNode;
 import com.sei.bean.View.ViewTree;
 import com.sei.util.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -61,6 +62,7 @@ public class ClientAutomator {
             if (jo.has("result")){
                 //d.log(jo.getString("result"));
                 ViewTree tree = new ViewTree(d, jo.getString("result"));
+                //CommonUtil.writeToFile(tree.getTreeStructureHash()+".xml", jo.getString("result"));
                 return tree;
             }else{
                 //d.log(response);
@@ -82,18 +84,22 @@ public class ClientAutomator {
             //d.log(vn.getResourceID() + "(" + pxy[0] + "," + pxy[1] + ") " );
             if (pxy[0] > d.screenWidth || pxy[0] < 0)
                 return Device.UI.SAME;
-
-            for(int i = 0; i < 6; ++i) {
+            for(int i = 0; i < 10; ++i) {
                 if (pxy[1] < 0) {
                     d.log("scroll up " + pxy[1]);
                     ClientAdaptor.scrollUp(d);
                     ViewTree tree1 = getCurrentTree(d);
-                    parse_path(d, tree1, path, pxy);
+                    vn = parse_path(d, tree1, path, pxy);
                 }else if(pxy[1] > d.screenHeight){
                     d.log("scroll down " + pxy[1]);
                     ClientAdaptor.scrollDown(d);
                     ViewTree tree1 = getCurrentTree(d);
-                    parse_path(d, tree1, path, pxy);
+                    vn = parse_path(d, tree1, path, pxy);
+                } else {
+                    if(vn != null && vn.getWebContent()) {
+                        CommonUtil.log("find the node and its viewText is:" + vn.getViewText());
+                        break;
+                    }
                 }
             }
 
@@ -137,7 +143,9 @@ public class ClientAutomator {
     }
 
     public static ViewNode parse_path(Device d, ViewTree tree, String path, int[] pxy){
-        ViewNode vn = ViewUtil.getViewByPath(tree.root, path);
+        //web node
+        ViewNode vn = null;
+        vn = ViewUtil.getViewByPath(tree.root, path);
         if (vn == null){
             //CommonUtil.storeTree(tree);
             return vn;

@@ -1,0 +1,17 @@
+{
+	"compilerOptions": {
+		"allowJs": true,
+		"strict": true,
+		"module": "commonjs",
+		"noImplicitAny": true,
+		"removeComments": true,
+		"outDir": "build",
+		"lib": ["es2017"],
+		"target": "es2017"
+	},
+
+	"include": [
+		"src/**/*.ts",
+		"src/**/*.js"
+	]
+}

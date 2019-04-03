@@ -1,22 +1,24 @@
 package com.sei.bean.View;
 
+import com.alibaba.fastjson.JSON;
 import com.sei.agent.Device;
-import com.sei.util.ClientUtil;
-import com.sei.util.CommonUtil;
-import com.sei.util.SerializeUtil;
-import com.sei.util.ViewUtil;
+import com.sei.util.*;
 import com.sei.util.client.ClientAdaptor;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.parser.Parser;
 import org.jsoup.select.Elements;
 
+import javax.xml.xpath.XPath;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.Serializable;
 import java.sql.ClientInfoStatus;
 import java.util.*;
+import com.sei.util.CmdUtil;
 
 import static com.sei.util.CommonUtil.log;
 
@@ -93,10 +95,37 @@ public class ViewTree implements Serializable {
             relate_hash_string = now.calStringWithoutPosition();
             now.total_view = 1;
 
-            // not include webview content
+            // now include webview content
+            // change by ycx on 2019/1/25
             if (rootView.attr("class").contains("webkit") ||
                     rootView.attr("class").contains("WebView")){
+
+                //CommonUtil.log("find web view!");
                 hasWebview = true;
+                now.setXpath("@"+now.xpath);
+
+                if(CommonUtil.WEBVIEW) {
+                    String html = "";
+                    for(int i = 0; i < 3; i++) {
+                        html = ConnectUtil.sendHttpGet("http://127.0.0.1:9234/getDOM");
+                        if(!html.contains("Server returned HTTP response code: 500"))  {
+                            now.setDOMTree(html);
+                            break;
+                        }
+                        CommonUtil.sleep(500);
+                        // restart process
+                        CmdUtil.restartProcess();
+                        if(i == 2) CommonUtil.log("fail to get dom tree!");
+                    }
+
+                    if(!buildLeafNode(now)) CommonUtil.log("build leaf node failed!");
+                }
+
+                // add children's hash string into relate_hash_string
+                for(ViewNode child : now.getChildren()){
+                    relate_hash_string += child.calStringWithoutPosition();
+                }
+
                 now.setNodeRelateHash(relate_hash_string.hashCode());
                 return now;
             }
@@ -301,4 +330,145 @@ public class ViewTree implements Serializable {
 
         return path;
     }
+
+
+    /*
+     * 将DOM树压平放入view tree中，采用递归深搜
+     */
+    public void DFS(Element element, ViewNode now, String xpath, boolean clickable) {
+        //CommonUtil.log("============================================");
+        //CommonUtil.log("DFS on element:" + element.className());
+        //CommonUtil.log("element html:" + element.html());
+        Elements children = element.children();
+        if (children.size() == 0  && !element.html().equals("")) {
+            // 叶子结点
+            ViewNode leaf = new ViewNode();
+            leaf.setParent(now);
+            leaf.setWebContent(true);
+            leaf.setViewText(element.html());
+            leaf.setWebXpath(xpath);
+            for(int i = 0; i < 3; i ++) {
+                try {
+                    String result = ConnectUtil.sendHttpGet("http://127.0.0.1:9234/getLocation?xpath="+xpath);
+                    //CommonUtil.log("result:" + result);
+                    JSONObject res = new JSONObject(result);
+
+                    // set x,y
+                    int x = new Double(res.getDouble("left") + 1).intValue();
+                    int y = new Double(res.getDouble("top") + 1).intValue();
+                    x += now.getX();
+                    y += now.getY();
+                    leaf.setX(x);
+                    leaf.setY(y);
+
+                    // set width and height
+                    int width = res.getInt("width");
+                    int height = res.getInt("height");
+                    leaf.setWidth(width);
+                    leaf.setHeight(height);
+
+                    // other things
+                    leaf.clickable = clickable;
+                    // 统一定义为webNode
+                    leaf.setViewTag("webNode");
+                    // 这些叶子结点的xpath做特殊处理，定义为"@X,Y"
+                    leaf.setXpath("@"+x+","+y);
+                    break;
+
+                } catch (Exception e) {
+                    CommonUtil.sleep(500);
+                    if(i == 2) e.printStackTrace();
+                }
+            }
+            now.addChild(leaf);
+        }
+
+        // tag2Num: key -- tagName   value -- total number of this tag
+        // tag2Cnt: key -- tagName   value -- current index of this tag
+        // all 1 based index
+        //Map<String, Integer> tag2Num = new HashMap<String, Integer>();
+        Map<String, Integer> tag2Cnt = new HashMap<String, Integer>();
+
+        // init tag2Num and tag2Cnt
+        for(Element e : children) {
+            String tagName = e.tagName();
+            tag2Cnt.put(tagName, 1);
+        }
+
+        for(Element e : children) {
+            String tagName = e.tagName();
+            int oldCnt = tag2Cnt.get(tagName);
+            int newCnt = oldCnt+1;
+            tag2Cnt.put(tagName, newCnt);
+            String newXpath = xpath+"/"+tagName+"["+oldCnt+"]";
+            // 超链接或者列表可点击
+            if (tagName.equals("a")||tagName.equals("li")) {
+                DFS(e, now, newXpath, true);
+            } else {
+                DFS(e, now, newXpath, clickable);
+            }
+
+        }
+    }
+
+
+    /*
+     * 将DOM树压平放入view tree中，调用新接口。
+     */
+    public boolean buildLeafNode(ViewNode now) {
+        for(int i = 0; i < 3; i++) {
+            try {
+                String result = ConnectUtil.sendHttpGet("http://127.0.0.1:9234/getAllLeavesLocations");
+                //CommonUtil.log("result:" + result);
+                JSONObject res = new JSONObject(result);
+                assert(res.has("leaves"));
+                double devicePixelRatio = res.getDouble("devicePixelRatio");
+                JSONArray leaves = res.getJSONArray("leaves");
+                int length = leaves.length();
+                for(int j = 0; j < length; j++) {
+                    ViewNode leaf = new ViewNode();
+                    JSONObject JSONLeaf = leaves.getJSONObject(j);
+
+                    leaf.setParent(now);
+                    leaf.setWebContent(true);
+                    leaf.setViewText(JSONLeaf.getString("innerHTML"));
+                    leaf.clickable = JSONLeaf.getBoolean("clickable");
+                    leaf.setViewTag("webNode/"+JSONLeaf.getString("tag"));
+
+                    JSONObject location = JSONLeaf.getJSONObject("location");
+
+                    //set x,y
+                    int x = new Double(location.getDouble("left") * devicePixelRatio).intValue();
+                    int y = new Double(location.getDouble("top") * devicePixelRatio).intValue();
+                    x += now.getX();
+                    y += now.getY();
+                    leaf.setX(x);
+                    leaf.setY(y);
+                    // set width and height
+                    int width = new Double(location.getInt("width") * devicePixelRatio).intValue();
+                    int height = new Double(location.getInt("height") * devicePixelRatio).intValue();
+                    leaf.setWidth(width);
+                    leaf.setHeight(height);
+
+                    // 这些叶子结点的xpath做特殊处理，定义为"@xpath"
+                    String xpath = new String(JSONLeaf.getString("xpath"));
+                    leaf.setXpath("@"+xpath);
+
+                    // depth
+                    leaf.setDepth(now.getDepth()+1);
+
+                    now.addChild(leaf);
+                }
+                break;
+            } catch (Exception e) {
+                CmdUtil.restartProcess();
+                if(i == 2) {
+                    //e.printStackTrace();
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
 }

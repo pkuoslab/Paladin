@@ -22,6 +22,7 @@ public class ViewNode implements Serializable, Comparable{
     public int total_view;
     private String viewText;
     public String xpath;
+    public String webXpath;
 
     public boolean isList;
 
@@ -32,7 +33,7 @@ public class ViewNode implements Serializable, Comparable{
     private int nodeRelateHash;
 
     //在树种的层级
-    @JSONField(serialize=false)
+    @JSONField(serialize=true)
     private int depth;
 
     //view的子节点
@@ -55,6 +56,9 @@ public class ViewNode implements Serializable, Comparable{
     private int height;
     private int x;
     private int y;
+
+    private boolean webContent;
+    private String DOMTree;
 
     public ViewNode() {
         children = new LinkedList<ViewNode>();
@@ -112,6 +116,7 @@ public class ViewNode implements Serializable, Comparable{
     public void setChildren(List<ViewNode> children) {
         this.children = children;
     }
+    public void addChild(ViewNode child) { this.children.add(child); }
 
     public ViewNode getParent() {
         return parent;
@@ -157,6 +162,15 @@ public class ViewNode implements Serializable, Comparable{
 
     public String getContentDesc(){return this.contentDesc;}
     public void setContentDesc(String contentDesc){this.contentDesc=contentDesc;}
+
+    public String getDOMTree() { return DOMTree; }
+    public void setDOMTree(String DOMTree) { this.DOMTree = DOMTree; }
+
+    public boolean getWebContent() { return webContent; }
+    public void setWebContent(boolean webContent) { this.webContent = webContent; }
+
+    public String getWebXpath() { return webXpath; }
+    public void setWebXpath(String webXpath) { this.webXpath = webXpath; }
 
     //返回的是class+深度+位置
     public String calString(){
@@ -223,4 +237,10 @@ public class ViewNode implements Serializable, Comparable{
         }
         return this.xpath;
     }
+
+    public void setXpath(String xpath) {
+        this.xpath = xpath;
+    }
+
+
 }

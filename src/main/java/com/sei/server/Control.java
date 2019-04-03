@@ -16,6 +16,7 @@ import java.util.*;
 
 import static com.sei.util.CommonUtil.DEFAULT_PORT;
 import static com.sei.util.CommonUtil.log;
+import com.sei.util.CmdUtil;
 
 public class Control extends NanoHTTPD{
     public static HashMap<String, Handler> route_table = new HashMap<>();
@@ -218,6 +219,15 @@ public class Control extends NanoHTTPD{
                     ClientAdaptor.type = 1;
                 }else{
                     log("unsupported backend: " + backEnd + " default UIAutomator");
+                }
+            }
+
+            if (config_json.has("WEBVIEW")) {
+                Boolean webview = config_json.getBoolean("WEBVIEW");
+                if(webview) {
+                    log("retrieve web content");
+                    CommonUtil.WEBVIEW = true;
+                    CmdUtil.startProcess();
                 }
             }
 

@@ -1,0 +1,15 @@
+{
+    "ADB_PATH": "/Users/ycx/Documents/android-sdk-macosx/platform-tools/",
+    "DEFAULT_PORT": 5700,
+    "BACKEND": "UIAutomator",
+    "SCREENSHOT" : true,
+    "WEBVIEW" : true,
+    "DEVICES": [
+        {
+            "IP": "127.0.0.1",
+            "SERIAL": "192.168.56.101:5555",
+            "PORT": 6161
+        }
+    ],
+    "PACKAGE": "com.zuzuChe"
+}

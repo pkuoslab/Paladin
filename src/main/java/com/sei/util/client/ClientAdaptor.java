@@ -204,12 +204,12 @@ public class ClientAdaptor {
     }
 
     public static void scrollUp(Device d){
-        String command = CommonUtil.ADB_PATH + "adb -s " + d.serial + " shell input swipe 300 300 500 1000";
+        String command = CommonUtil.ADB_PATH + "adb -s " + d.serial + " shell input swipe 300 300 500 1300 2000";
         ShellUtils2.execCommand(command);
     }
 
     public static void scrollDown(Device d){
-        String command = CommonUtil.ADB_PATH + "adb -s " + d.serial + " shell input swipe 500 1000 300 300";
+        String command = CommonUtil.ADB_PATH + "adb -s " + d.serial + " shell input swipe 500 1300 300 300 2000";
         ShellUtils2.execCommand(command);
     }
 
