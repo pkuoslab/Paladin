@@ -1,5 +1,9 @@
+# Folders
 .idea/
 .gradle/
 out/
+build/
+
+# Files
 graph.json
 tree.json

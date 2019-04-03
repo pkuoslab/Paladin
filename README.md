@@ -19,8 +19,8 @@ Paladin has been tested in ubuntu 16.04, mac and Windows 10 environment.
 
 ```shell
 git clone https://github.com/pkuoslab/Paladin.git
-cd paladin
-gradle fatjar
+cd Paladin
+./gradlew fatjar
 mv build/libs/paladin-1.0.jar paladin.jar
 mv build/libs/config.json config.json
 ```
