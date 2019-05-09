@@ -3,7 +3,7 @@
     "DEFAULT_PORT": 5700,
     "BACKEND": "UIAutomator",
     "SCREENSHOT" : true,
-    "WEBVIEW" : true,
+    "WEBVIEW" : false,
     "DEVICES": [
         {
             "IP": "127.0.0.1",
@@ -11,5 +11,6 @@
             "PORT": 6161
         }
     ],
-    "PACKAGE": "com.zuzuChe"
+    "PACKAGE": "com.douban.movie",
+    "TARGET_ACTIVITY" : "LegacySubjectActivity"
 }

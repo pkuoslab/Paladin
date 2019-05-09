@@ -12,6 +12,7 @@ public class Decision {
         int SEQ = -1;
         int STOP = 2;
         int RESTART = 3;
+        int DONOTHING = 4;
     }
     public int code;
     public Action action;

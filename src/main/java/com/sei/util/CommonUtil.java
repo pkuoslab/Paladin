@@ -4,6 +4,7 @@ import com.sei.agent.Device;
 import com.sei.bean.Collection.Graph.AppGraph;
 import com.sei.bean.View.ViewTree;
 import com.sei.util.client.ClientAdaptor;
+import jdk.nashorn.tools.Shell;
 
 import java.io.*;
 import java.sql.Timestamp;
@@ -24,9 +25,11 @@ public class CommonUtil {
     public static Boolean UITree = true;
     public static Boolean INTENT = false;
     public static String SERIAL = "";
-    public static Random random = new Random(8888); //trail : 259
+    public static Random random = new Random(233); //trail : 259
     private static Boolean UPLOAD = false;
     public static Boolean WEBVIEW = false;
+    public static Boolean DEEPLINK = false;
+    public static Boolean SPIDER = false;
 
 
     public static void main(String[] argv){
@@ -101,7 +104,11 @@ public class CommonUtil {
         if (!dir.exists())
             dir.mkdir();
 
-        String picname = tree.getActivityName() + "_" + tree.getTreeStructureHash() + ".png";
+        String picname = tree.getActivityName() + "_" + tree.getTreeStructureHash();
+        if(SPIDER) {
+            picname += "_" + tree.getDeeplink().hashCode();
+        }
+        picname += ".png";
         ShellUtils2.execCommand(CommonUtil.ADB_PATH + "adb -s " + d.serial  +" shell screencap -p sdcard/" + picname);
         ShellUtils2.execCommand(CommonUtil.ADB_PATH + "adb -s " + d.serial  +" pull sdcard/" + picname + " " + "output/" + ConnectUtil.launch_pkg + "/");
         ShellUtils2.execCommand(CommonUtil.ADB_PATH + "adb -s " + d.serial  +" shell rm sdcard/" + picname);
@@ -109,6 +116,16 @@ public class CommonUtil {
     }
 
     public static void storeTree(ViewTree tree){
+
+        /*
+        目前paladin只在spider mode下存储deeplink
+        if(DEEPLINK) {
+            // save deep link in view tree
+            ShellUtils2.execCommand("adb forward tcp:1997 tcp:8080");
+            String deeplinks = ConnectUtil.sendHttpGet("http://127.0.0.1:1997/getDeepLinks");
+            tree.setDeeplink(deeplinks);
+        }*/
+
         String treeStr = SerializeUtil.toBase64(tree);
 
         File dir1 = new File("output");
@@ -119,7 +136,9 @@ public class CommonUtil {
         if (!dir.exists())
             dir.mkdir();
         try {
-            String name = tree.getActivityName() + "_" + tree.getTreeStructureHash() + ".json";
+            String name = tree.getActivityName() + "_" + tree.getTreeStructureHash();
+            if(SPIDER) name += "_" + tree.getDeeplink().hashCode();
+            name += ".json";
             File file = new File("output/" + ConnectUtil.launch_pkg + "/" + name);
             FileWriter writer = new FileWriter(file);
             writer.write(treeStr);
@@ -190,5 +209,11 @@ public class CommonUtil {
         }catch (Exception e){
             e.printStackTrace();
         }
+    }
+
+    public static String getDeeplink() {
+        ShellUtils2.execCommand("adb forward tcp:1997 tcp:8080");
+        String deeplink = ConnectUtil.sendHttpGet("http://127.0.0.1:1997/getDeepLink");
+        return deeplink;
     }
 }

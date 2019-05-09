@@ -40,6 +40,8 @@ public class ViewTree implements Serializable {
     String html_nodes = "";
     static String[] filtsBys = new String[]{"AbsListView", "GridView", "RecyclerView"};
 
+    public String Deeplink = "";
+
     public ViewTree() {
     }
 
@@ -471,4 +473,11 @@ public class ViewTree implements Serializable {
         return true;
     }
 
+    public String getDeeplink() {
+        return Deeplink;
+    }
+
+    public void setDeeplink(String deeplink) {
+        Deeplink = deeplink;
+    }
 }

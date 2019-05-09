@@ -41,17 +41,23 @@ public class Device extends Thread{
     private List<String> route_list;
     Boolean LOGIN_SUCCESS;
 
+    public String targetActivity;
+
     public interface UI{
         int NEW = 0;
         int PIDCHANGE = -1;
         int OUT = -3;
         int SAME = 2;
+        int OUTANDIN = 3;
     }
 
     public interface MODE{
         int REPLAY = 0;
         int DFS = 1;
         int DFSGraph = 2;
+        int DEBUG = 3;
+        int SPIDER = 4;
+        int NEWSPIDER = 5;
     }
 
     public static void main(String[] argv){
@@ -153,6 +159,10 @@ public class Device extends Thread{
 
     public int execute_decision(Decision decision) throws Exception{
         int response = UI.OUT;
+        if(decision.code == Decision.CODE.DONOTHING) {
+            newTree = currentTree;
+            return UI.SAME;
+        }
         if (decision.code == Decision.CODE.CONTINUE) {
             Action action = decision.action;
             //如果是输入框，先点击获得焦点再输入
@@ -192,6 +202,7 @@ public class Device extends Thread{
             if (response == UI.NEW || response == UI.PIDCHANGE){
                 if (update_stack(null) == UI.OUT) response = UI.OUT;
             }
+            newTree = currentTree;
         }
 
         return response;
@@ -275,6 +286,11 @@ public class Device extends Thread{
     }
 
     public int recover_stack(Decision decision) throws Exception{
+        if(mode == MODE.NEWSPIDER) {
+            //在spider mode下回到mutation page不使用栈的方式。
+            return UI.OUTANDIN;
+        }
+
         if (currentTree == null || currentTree.root == null)
             return UI.OUT;
 
@@ -423,5 +439,14 @@ public class Device extends Thread{
 
     public List<String> getRoute_list(){
         return this.route_list;
+    }
+
+    public String getTargetActivity() {
+        return targetActivity;
+    }
+
+    public void setTargetActivity(String targetActivity) {
+        // assert mode == MODE.SPIDER;
+        this.targetActivity = targetActivity;
     }
 }

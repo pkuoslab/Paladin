@@ -12,6 +12,8 @@ import com.sei.util.SerializeUtil;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.*;
 
 import static com.sei.util.CommonUtil.log;
@@ -143,14 +145,26 @@ public class GraphAdjustor extends UiTransition{
         }
 
         if (response == Device.UI.OUT && !ClientUtil.getForeground(d).equals(ConnectUtil.launch_pkg)){
-            String current_app = ClientUtil.getForeground(d);
-            String act = ClientUtil.getTopActivityName(d);
-            action.setTarget(current_app + "_" + act);
-            action.setIntent(getSerIntent(d));
-            FragmentNode fragmentNode = locate(currentTree);
-            fragmentNode.interAppPaths.add(action);
-            d.log("add interAppPath " + current_app + "_" + act);
-            return 0;
+            try {
+                String current_app = ClientUtil.getForeground(d);
+                String act = ClientUtil.getTopActivityName(d);
+                action.setTarget(current_app + "_" + act);
+                action.setIntent(getSerIntent(d));
+                FragmentNode fragmentNode = locate(currentTree);
+                fragmentNode.interAppPaths.add(action);
+                d.log("add interAppPath " + current_app + "_" + act);
+                return 0;
+            } catch (Exception e) {
+                CommonUtil.log("something wrong when adding inter app path");
+                CommonUtil.log("============stack trace============");
+                StringWriter sw = new StringWriter();
+                PrintWriter pw = new PrintWriter(sw);
+                e.printStackTrace(pw);
+                CommonUtil.log(sw.toString());
+                CommonUtil.log("============stack trace============");
+                return 0;
+            }
+
         }else if(response == Device.UI.OUT){
             return 0;
         }
@@ -325,7 +339,7 @@ public class GraphAdjustor extends UiTransition{
             log(currentNode.getSignature() +  " path: " + currentNode.path_index.size() + "/" + currentNode.path_list.size());
 
             String path = currentNode.path_list.get(ser);
-            log("next path to act:" + path);
+            //log("next path to act:" + path);
             if (currentNode.edit_fields.contains(path)) {
                 action = new Action(path, Action.action_list.ENTERTEXT);
             }else if (path.equals("menu")){
@@ -498,7 +512,7 @@ public class GraphAdjustor extends UiTransition{
             FragmentNode processing = queue.poll();
             if (loop(processing.getIntrapaths(), end, processing, queue)){
                 return buildPath(end);
-            }else if (loop(processing.getInterpaths(), end, processing, queue)){
+            } else if (loop(processing.getInterpaths(), end, processing, queue)){
                 return buildPath(end);
             }
         }
@@ -547,5 +561,50 @@ public class GraphAdjustor extends UiTransition{
             return null;
         }
         return actNode.find_Fragment_in_graph(tree);
+    }
+
+    public List<FragmentNode> getPreviousNodes(FragmentNode start, String activityName){
+        List<FragmentNode> previousNodes = new ArrayList<>();
+        ActivityNode targetActivityNode = appGraph.find_Activity(activityName);
+        if(targetActivityNode == null) {
+            log("can't find activity node:" + activityName);
+            return previousNodes;
+        }
+
+        List<FragmentNode> targetFragmentNodes = targetActivityNode.fragments;
+        if(targetFragmentNodes == null || targetFragmentNodes.size() == 0){
+            log("can't find fragment nodes!");
+            return previousNodes;
+        }
+
+
+        //宽搜
+        Queue<FragmentNode> queue = new LinkedList<>();
+        queue.add(start);
+        start.setColor("gray");
+        while(!queue.isEmpty()){
+            //CommonUtil.log("bfs");
+            FragmentNode processing = queue.poll();
+            //CommonUtil.log("now:" + processing.getSignature());
+            for(Action action : processing.getAllPaths()){
+                FragmentNode n = appGraph.getFragment(action.target_activity, action.target_hash);
+                if (n == null){
+                    CommonUtil.log("null???");
+                    continue;
+                }
+                if (n.getColor().equals("white")){
+                    n.setPrevious(processing);
+                    n.setAction(action);
+                    n.setColor("gray");
+                    //CommonUtil.log("activity:" + n.activity);
+                    if (n.getActivity().equals(activityName)){
+                        //log("find one:"  + processing.getSignature());
+                        previousNodes.add(processing);
+                    }
+                    queue.add(n);
+                }
+            }
+        }
+        return previousNodes;
     }
 }

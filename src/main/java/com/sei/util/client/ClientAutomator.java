@@ -75,6 +75,35 @@ public class ClientAutomator {
         }
     }
 
+    public static String getXML(Device d) {
+        JSONObject data = new JSONObject();
+        data.put("jsonrpc", "2.0");
+        data.put("method", "dumpWindowHierarchy");
+        data.put("id", 1);
+        JSONArray params = new JSONArray();
+        params.add(false);
+        params.add("view.xml");
+        data.put("params", params);
+
+        String route = d.ip + ":" + d.port + "/jsonrpc/0";
+        try {
+            String response = ConnectUtil.postJson(route, data);
+            org.json.JSONObject jo = new org.json.JSONObject(response);
+            if (jo.has("result")){
+                //d.log(jo.getString("result"));
+                return jo.getString("result");
+                //CommonUtil.writeToFile(tree.getTreeStructureHash()+".xml", jo.getString("result"));
+            }else{
+                //d.log(response);
+                return null;
+            }
+        }catch (Exception e){
+            init(d);
+            e.printStackTrace();
+            return null;
+        }
+    }
+
     public static int execute_action(Device d, int code, ViewTree tree, String path){
         int[] pxy = new int[2];
         if (code == Action.action_list.CLICK){
@@ -119,6 +148,13 @@ public class ClientAutomator {
                 break;
             case Action.action_list.ENTERTEXT:
                 ClientAdaptor.enterText(d, path);
+                break;
+            case Action.action_list.SCROLLDOWN:
+                ClientAdaptor.scrollDown(d);
+                break;
+            case Action.action_list.SCROLLUP:
+                ClientAdaptor.scrollUp(d);
+                break;
         }
 
         CommonUtil.sleep(800);

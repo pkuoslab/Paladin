@@ -6,6 +6,7 @@ import com.sei.server.component.Handler;
 import com.sei.server.component.Scheduler;
 import com.sei.util.*;
 import com.sei.util.client.ClientAdaptor;
+import com.sei.util.client.ClientAutomator;
 import fi.iki.elonen.NanoHTTPD;
 import fi.iki.elonen.util.ServerRunner;
 import org.json.JSONArray;
@@ -152,6 +153,24 @@ public class Control extends NanoHTTPD{
             }
         });
 
+        register("/getXML", new Handler() {
+            @Override
+            public Response onRequest(IHTTPSession session) {
+                if (session.getQueryParameterString() == null){
+                    return newFixedLengthResponse("format: getXML?serial=xxx");
+                }
+                String query = session.getQueryParameterString().substring(7);
+                //log("stop device: " + query);
+                if(!devices.containsKey(query)) {
+                    return newFixedLengthResponse("unknown serial");
+                }
+                Device d = devices.get(query);
+                String xml = ClientAutomator.getXML(d);
+                //CommonUtil.log(xml);
+                return newFixedLengthResponse(xml);
+            }
+        });
+
         register("/finish", new Handler() {
             @Override
             public Response onRequest(IHTTPSession session) {
@@ -231,6 +250,13 @@ public class Control extends NanoHTTPD{
                 }
             }
 
+            if (config_json.has("DEEPLINK")) {
+                Boolean deeplink = config_json.getBoolean("DEEPLINK");
+                if(deeplink) {
+                    CommonUtil.DEEPLINK = true;
+                }
+            }
+
             String pkg = config_json.getString("PACKAGE");
             ConnectUtil.setUp(pkg);
             JSONArray device_config = config_json.getJSONArray("DEVICES");
@@ -265,9 +291,23 @@ public class Control extends NanoHTTPD{
 
                 Device d;
                 if (argv.length >0 && argv[0].contains("-r")){
-                    d = new Device(ip, c.getInt("PORT"), serial, pkg, pass, 2);
-                }else{
-                    d = new Device(ip, c.getInt("PORT"), serial, pkg, pass, 1);
+                    d = new Device(ip, c.getInt("PORT"), serial, pkg, pass, Device.MODE.DFSGraph);
+                } else if(argv.length >0 && argv[0].contains("-d")) {
+                    d = new Device(ip, c.getInt("PORT"), serial, pkg, pass, Device.MODE.DEBUG);
+                } else if(argv.length >0 && argv[0].contains("-s")) {
+                    d = new Device(ip, c.getInt("PORT"), serial, pkg, pass, Device.MODE.SPIDER);
+                }
+                else if(argv.length >0 && argv[0].contains("-n")) {
+                    CommonUtil.log("in spider mode!");
+                    d = new Device(ip, c.getInt("PORT"), serial, pkg, pass, Device.MODE.NEWSPIDER);
+                    assert config_json.has("TARGET_ACTIVITY");
+                    CommonUtil.SCREENSHOT = false;
+                    CommonUtil.SPIDER = true;
+                    String target = config_json.getString("TARGET_ACTIVITY");
+                    d.setTargetActivity(target);
+                    log("Target：" + target);
+                } else {
+                    d = new Device(ip, c.getInt("PORT"), serial, pkg, pass, Device.MODE.DFS);
                 }
 
                 scheduler.bind(d);

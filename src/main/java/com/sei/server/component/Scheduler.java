@@ -7,10 +7,7 @@ import com.sei.bean.Collection.Graph.GraphAdjustor;
 import com.sei.bean.Collection.Stack.FragmentStack;
 import com.sei.bean.Collection.Tuple2;
 import com.sei.bean.View.ViewTree;
-import com.sei.modules.DFGraphStrategy;
-import com.sei.modules.DepthFirstStrategy;
-import com.sei.modules.ModelReplay;
-import com.sei.modules.Strategy;
+import com.sei.modules.*;
 import com.sei.util.CommonUtil;
 import com.sei.util.ConnectUtil;
 import com.sei.util.SerializeUtil;
@@ -37,7 +34,10 @@ public class Scheduler {
         ErrorLog = new HashMap<>();
         strategys = new Strategy[]{new ModelReplay(graphAdjustor, devices),
                 new DepthFirstStrategy(graphAdjustor, devices),
-                new DFGraphStrategy(graphAdjustor, devices)};
+                new DFGraphStrategy(graphAdjustor, devices),
+                new DebugStrategy(graphAdjustor, devices),
+                new SpiderStrategy(graphAdjustor, devices),
+                new NewSpiderStrategy(graphAdjustor, devices)};
         if (strategys == null){
             log("", "why???");
         }

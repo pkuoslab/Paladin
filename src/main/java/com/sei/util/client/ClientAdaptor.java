@@ -102,9 +102,10 @@ public class ClientAdaptor {
     }
 
     public static String getTopActivityName(Device device){
+        ShellUtils2.CommandResult commandResult = null;
         try {
             String command = CommonUtil.ADB_PATH + "adb -s " + device.serial + " shell dumpsys window windows | grep mCurrentFocus";
-            ShellUtils2.CommandResult commandResult = ShellUtils2.execCommand(command);
+            commandResult = ShellUtils2.execCommand(command);
             String dumpInfo = commandResult.successMsg;
             String result;
             int start = dumpInfo.lastIndexOf(".");
@@ -128,6 +129,7 @@ public class ClientAdaptor {
             }
             return result;
         }catch (Exception e){
+            CommonUtil.log("command result:" + commandResult.successMsg);
             e.printStackTrace();
             throw e;
         }
@@ -204,12 +206,14 @@ public class ClientAdaptor {
     }
 
     public static void scrollUp(Device d){
-        String command = CommonUtil.ADB_PATH + "adb -s " + d.serial + " shell input swipe 300 300 500 1300 2000";
+        CommonUtil.log("scroll up");
+        String command = CommonUtil.ADB_PATH + "adb -s " + d.serial + " shell input swipe 300 300 500 1300 300";
         ShellUtils2.execCommand(command);
     }
 
     public static void scrollDown(Device d){
-        String command = CommonUtil.ADB_PATH + "adb -s " + d.serial + " shell input swipe 500 1300 300 300 2000";
+        CommonUtil.log("scroll down");
+        String command = CommonUtil.ADB_PATH + "adb -s " + d.serial + " shell input swipe 500 1300 300 300 300";
         ShellUtils2.execCommand(command);
     }
 
