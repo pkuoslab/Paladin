@@ -38,6 +38,10 @@ public class ClientAutomator {
             CommonUtil.sleep(2000);
             String command2 = CommonUtil.ADB_PATH + "adb -s " + d.serial + " forward tcp:" + d.port + " tcp:9008";
             ShellUtils2.execCommand(command2);
+
+
+            CommonUtil.log("grant permission for package " + ConnectUtil.launch_pkg);
+            CommonUtil.grantPermission(d);
         }catch (Exception e){
             e.printStackTrace();
         }
@@ -165,6 +169,10 @@ public class ClientAutomator {
         }
 
         ViewTree newTree = getCurrentTree(d);
+        if(newTree == null) {
+            CommonUtil.sleep(3000);
+            newTree = getCurrentTree(d);
+        }
         if (newTree.hasWebview){
             CommonUtil.sleep(1000);
             newTree = getCurrentTree(d);

@@ -1,6 +1,8 @@
 package com.sei.server;
 
+import com.alibaba.fastjson.JSON;
 import com.sei.agent.Device;
+import com.sei.bean.View.ViewTree;
 import com.sei.modules.test.ReplayTest;
 import com.sei.server.component.Handler;
 import com.sei.server.component.Scheduler;
@@ -171,6 +173,24 @@ public class Control extends NanoHTTPD{
             }
         });
 
+        register("/getTree", new Handler() {
+            @Override
+            public Response onRequest(IHTTPSession session) {
+                if (session.getQueryParameterString() == null){
+                    return newFixedLengthResponse("format: getTree?serial=xxx");
+                }
+                String query = session.getQueryParameterString().substring(7);
+                //log("stop device: " + query);
+                if(!devices.containsKey(query)) {
+                    return newFixedLengthResponse("unknown serial");
+                }
+                Device d = devices.get(query);
+                ViewTree tree = ClientAutomator.getCurrentTree(d);
+                //CommonUtil.log(xml);
+                return newFixedLengthResponse(JSON.toJSONString(tree));
+            }
+        });
+
         register("/finish", new Handler() {
             @Override
             public Response onRequest(IHTTPSession session) {
@@ -296,8 +316,19 @@ public class Control extends NanoHTTPD{
                     d = new Device(ip, c.getInt("PORT"), serial, pkg, pass, Device.MODE.DEBUG);
                 } else if(argv.length >0 && argv[0].contains("-s")) {
                     d = new Device(ip, c.getInt("PORT"), serial, pkg, pass, Device.MODE.SPIDER);
-                }
-                else if(argv.length >0 && argv[0].contains("-n")) {
+                } else if(argv.length >0 && argv[0].contains("-m")) {
+                    d = new Device(ip, c.getInt("PORT"), serial, pkg, pass, Device.MODE.MONKEY);
+                    if(config_json.has("TARGET_ACTIVITY")) {
+                        String target = config_json.getString("TARGET_ACTIVITY");
+                        d.setTargetActivity(target);
+                    }
+                } else if(argv.length >0 && argv[0].contains("-b")) {
+                    d = new Device(ip, c.getInt("PORT"), serial, pkg, pass, Device.MODE.BEFORESPIDER);
+                    if(config_json.has("TARGET_ACTIVITY")) {
+                        String target = config_json.getString("TARGET_ACTIVITY");
+                        d.setTargetActivity(target);
+                    }
+                } else if(argv.length >0 && argv[0].contains("-n")) {
                     CommonUtil.log("in spider mode!");
                     d = new Device(ip, c.getInt("PORT"), serial, pkg, pass, Device.MODE.NEWSPIDER);
                     assert config_json.has("TARGET_ACTIVITY");

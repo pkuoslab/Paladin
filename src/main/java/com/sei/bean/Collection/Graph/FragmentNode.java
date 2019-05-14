@@ -32,6 +32,9 @@ public class FragmentNode {
     public List<Integer> xpath_index;
     public List<Integer> path_index;
     public List<String> path_list;
+    public List<String> text_path_list;
+    public List<String> text_xpath_list;
+    public List<Integer> text_path_index;
     public List<String> edit_fields;
 
     public List<String> clicked_edges;
@@ -52,6 +55,10 @@ public class FragmentNode {
 
         path_list = new ArrayList<>();
         edit_fields = new ArrayList<>();
+
+        text_path_index = new ArrayList<>();
+        text_path_list = new ArrayList<>();
+        text_xpath_list = new ArrayList<>();
 
         clicked_edges = new ArrayList<>();
         targets = new ArrayList<>();
@@ -75,8 +82,19 @@ public class FragmentNode {
                     ViewNode vn = vl.get(i);
                     if (vn == null) continue;
                     path_list.add(xpath + "#" + i);
-                    if (vn != null && vn.getViewTag().contains("EditText"))
+                    if (vn.getViewText() != null && !vn.getViewText().equals("")) {
+                        text_path_list.add(xpath + "#" + i);
+                        if(!text_xpath_list.contains(xpath))
+                            text_xpath_list.add(xpath);
+                    }
+                    if (vn != null && vn.getViewTag().contains("EditText")){
                         edit_fields.add(xpath + "#" + i);
+                        // 特殊处理
+                        text_path_list.add(xpath + "#" + i);
+                        if(!text_xpath_list.contains(xpath))
+                            text_xpath_list.add(xpath);
+                    }
+
                 }
             }else{
                 //随机抽取6个
@@ -87,8 +105,19 @@ public class FragmentNode {
                     random_list.add(ser);
                     if (vn == null) continue;
                     path_list.add(xpath + "#" + ser);
-                    if (vn != null && vn.getViewTag().contains("EditText"))
+                    if (vn.getViewText() != null && !vn.getViewText().equals("")) {
+                        text_path_list.add(xpath + "#" + ser);
+                        if(!text_xpath_list.contains(xpath))
+                            text_xpath_list.add(xpath);
+                    }
+                    if (vn != null && vn.getViewTag().contains("EditText")){
                         edit_fields.add(xpath + "#" + ser);
+                        // 特殊处理
+                        text_path_list.add(xpath + "#" + i);
+                        if(!text_xpath_list.contains(xpath))
+                            text_xpath_list.add(xpath);
+                    }
+
                 }
             }
         }
@@ -202,7 +231,7 @@ public class FragmentNode {
 
     public void addInterpath(Action ea) {
         for (Action ee : interpaths){
-            if (ee.path.equals(ea.path))
+            if (ee.path != null && ea.path!=null && ee.path.equals(ea.path))
                 return;
         }
         interpaths.add(ea);

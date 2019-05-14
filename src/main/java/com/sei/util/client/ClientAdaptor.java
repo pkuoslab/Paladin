@@ -138,7 +138,8 @@ public class ClientAdaptor {
     public static void startApp(Device d, String pkg){
         String command = CommonUtil.ADB_PATH + "adb -s " + d.serial + " shell monkey -p " + pkg + " -c android.intent.category.LAUNCHER 1";
         ShellUtils2.execCommand(command);
-        CommonUtil.sleep(8000);
+        // 等待15秒
+        CommonUtil.sleep(15000);
         d.current_pkg = pkg;
     }
 

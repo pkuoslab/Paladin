@@ -118,7 +118,7 @@ public class AppGraph {
             }
         }
 
-        if (matchNode == null && max > 0.7){
+        if (matchNode == null && max > 0.5){
             matchNode = maxNode;
             matchNode.VISIT = true;
         }

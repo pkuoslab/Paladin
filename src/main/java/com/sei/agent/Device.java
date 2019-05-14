@@ -5,7 +5,9 @@ import com.sei.bean.Collection.Graph.GraphAdjustor;
 import com.sei.bean.Collection.Stack.FragmentStack;
 import com.sei.bean.Collection.Stack.RuntimeFragmentNode;
 import com.sei.bean.View.Action;
+import com.sei.bean.View.ViewNode;
 import com.sei.bean.View.ViewTree;
+import com.sei.modules.ModelReplay;
 import com.sei.server.component.Decision;
 import com.sei.server.component.Scheduler;
 import com.sei.util.ClientUtil;
@@ -16,7 +18,9 @@ import com.sei.util.client.ClientAdaptor;
 import com.sei.util.client.ClientAutomator;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 
 public class Device extends Thread{
     public String ip;
@@ -58,6 +62,8 @@ public class Device extends Thread{
         int DEBUG = 3;
         int SPIDER = 4;
         int NEWSPIDER = 5;
+        int MONKEY = 6;
+        int BEFORESPIDER = 7;
     }
 
     public static void main(String[] argv){
@@ -111,9 +117,11 @@ public class Device extends Thread{
                     RuntimeFragmentNode rfn = new RuntimeFragmentNode(currentTree);
                     fragmentStack.add(rfn);
                 } else {
-                    Action action = null;
-                    decision = new Decision(Decision.CODE.GO, action);
-                    response = recover_stack(decision);
+                    if(mode != MODE.NEWSPIDER && mode != MODE.MONKEY) {
+                        Action action = null;
+                        decision = new Decision(Decision.CODE.GO, action);
+                        response = recover_stack(decision);
+                    }
                 }
             }
 
@@ -125,6 +133,7 @@ public class Device extends Thread{
             }
 
             while(Exit == false){
+                //CommonUtil.log("new tree:" + newTree.getActivityName());
                 decision = scheduler.update(serial, currentTree, newTree, decision, response);
                 currentTree = newTree;
                 response = execute_decision(decision);
@@ -135,6 +144,7 @@ public class Device extends Thread{
             log("serial: " + serial + " stopped");
         }catch (Exception e){
             e.printStackTrace();
+            Exit = true;
         }
     }
 
@@ -149,6 +159,34 @@ public class Device extends Thread{
         ClientAdaptor.startApp(this, ConnectUtil.launch_pkg);
         if (ClientAdaptor.checkPermission(this)) enter();
         currentTree = getCurrentTree();
+
+        if(currentTree != null && checkCrash(currentTree.root)) {
+            CommonUtil.log("crash!!!!!");
+            Queue<ViewNode> queue = new LinkedList<>();
+            queue.add(currentTree.root);
+            int x = -1;
+            int y = -1;
+            while(!queue.isEmpty()) {
+                ViewNode now = queue.poll();
+                if(now.getViewText() != null && now.getViewText().contains("OK")) {
+                    CommonUtil.log("find the ok button");
+                    x = now.getX() + now.getWidth()/2;
+                    y = now.getY() + now.getHeight()/2;
+                    break;
+                }
+                for(ViewNode child: now.getChildren())
+                    queue.add(child);
+            }
+            if(x == -1 || y == -1){
+                CommonUtil.log("????");
+                assert false;
+            }
+            CommonUtil.log("try to click ok button");
+            ClientAdaptor.click(this,x,y);
+            CommonUtil.sleep(1000);
+            currentTree = getCurrentTree();
+        }
+
         if (currentTree == null || currentTree.root == null) enter();
 
         if (checkLogin(currentTree)) currentTree = getCurrentTree();
@@ -202,7 +240,18 @@ public class Device extends Thread{
             if (response == UI.NEW || response == UI.PIDCHANGE){
                 if (update_stack(null) == UI.OUT) response = UI.OUT;
             }
-            newTree = currentTree;
+            // modified by ycx on 2019/5/10
+            // newTree = currentTree;
+            newTree = getCurrentTree();
+        }else if (decision.code == Decision.CODE.RESTART_F) {
+            if(!restart()) Exit = true;
+            response = recover_stack(decision);
+            if (response == UI.NEW || response == UI.PIDCHANGE){
+                if (update_stack(null) == UI.OUT) response = UI.OUT;
+            }
+            // modified by ycx on 2019/5/10
+            // newTree = currentTree;
+            newTree = getCurrentTree();
         }
 
         return response;
@@ -290,6 +339,10 @@ public class Device extends Thread{
             //在spider mode下回到mutation page不使用栈的方式。
             return UI.OUTANDIN;
         }
+        if(mode == MODE.MONKEY) {
+            //不恢复栈。
+            return UI.SAME;
+        }
 
         if (currentTree == null || currentTree.root == null)
             return UI.OUT;
@@ -365,6 +418,33 @@ public class Device extends Thread{
             t += 1;
         }
 
+        if(checkCrash(currentTree.root)) {
+            CommonUtil.log("crash!!!!!");
+            Queue<ViewNode> queue = new LinkedList<>();
+            queue.add(currentTree.root);
+            int x = -1;
+            int y = -1;
+            while(!queue.isEmpty()) {
+                ViewNode now = queue.poll();
+                if(now.getViewText() != null && now.getViewText().contains("OK")) {
+                    CommonUtil.log("find the ok button");
+                    x = now.getX() + now.getWidth()/2;
+                    y = now.getY() + now.getHeight()/2;
+                    break;
+                }
+                for(ViewNode child: now.getChildren())
+                    queue.add(child);
+            }
+            if(x == -1 || y == -1){
+                CommonUtil.log("????");
+                assert false;
+            }
+            CommonUtil.log("try to click ok button");
+            ClientAdaptor.click(this,x,y);
+            CommonUtil.sleep(1000);
+            currentTree = getCurrentTree();
+        }
+
         if (currentTree == null || currentTree.root == null){
             log("restart too many times");
             Exit = true;
@@ -392,6 +472,11 @@ public class Device extends Thread{
                 // 尽量匹配上栈的第一个节点
                 if (p == -1) {
                     Action action = fragmentStack.get(0).getAction();
+                    if (action == null || action.path == null){
+                        t+= 1;
+                        continue;
+                    }
+
                     int idx = action.path.indexOf("#");
                     String xpath = action.path.substring(0, idx);
                     if (currentTree.getClickable_list().contains(xpath))
@@ -448,5 +533,17 @@ public class Device extends Thread{
     public void setTargetActivity(String targetActivity) {
         // assert mode == MODE.SPIDER;
         this.targetActivity = targetActivity;
+    }
+
+    public Boolean checkCrash(ViewNode vn) {
+        if(vn == null) return false;
+        if (vn.getViewText() != null && vn.getViewText().contains("Unfortunately") && vn.getViewText().contains("has stopped")) {
+            return true;
+        }
+        for(ViewNode child : vn.getChildren()) {
+            if(checkCrash(child))
+                return true;
+        }
+        return false;
     }
 }

@@ -182,7 +182,8 @@ public class FragmentStack {
             }
         }
         d.log("recover successfully");
-        d.newTree = tree;
+        d.newTree = d.getCurrentTree();
+        //CommonUtil.log("after recover:" + d.newTree.getActivityName() + "_" + d.newTree.getTreeStructureHash());
         return Device.UI.SAME;
 
     }

@@ -37,7 +37,9 @@ public class Scheduler {
                 new DFGraphStrategy(graphAdjustor, devices),
                 new DebugStrategy(graphAdjustor, devices),
                 new SpiderStrategy(graphAdjustor, devices),
-                new NewSpiderStrategy(graphAdjustor, devices)};
+                new NewSpiderStrategy(graphAdjustor, devices),
+                new MonkeyStrategy(graphAdjustor, devices),
+                new BeforeSpiderStrategy(graphAdjustor, devices)};
         if (strategys == null){
             log("", "why???");
         }

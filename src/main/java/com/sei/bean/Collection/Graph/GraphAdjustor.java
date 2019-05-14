@@ -2,6 +2,7 @@ package com.sei.bean.Collection.Graph;
 
 import com.sei.agent.Device;
 import com.sei.bean.Collection.Stack.RuntimeFragmentNode;
+import com.sei.bean.Collection.Tuple2;
 import com.sei.bean.Collection.UiTransition;
 import com.sei.bean.View.Action;
 import com.sei.bean.View.ViewTree;
@@ -9,6 +10,7 @@ import com.sei.util.ClientUtil;
 import com.sei.util.CommonUtil;
 import com.sei.util.ConnectUtil;
 import com.sei.util.SerializeUtil;
+import com.sun.org.apache.xpath.internal.operations.Bool;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -22,9 +24,12 @@ public class GraphAdjustor extends UiTransition{
     public AppGraph appGraph;
     public AppGraph reGraph;
     Boolean REPLAY_MODE = false;
+    Boolean SPIDER_MODE = false;
     String RECENT_INTENT_TIMESTAMP = "";
+    private Map<String, List<Integer>> similarPathIndex;
 
     public GraphAdjustor(String argv){
+        similarPathIndex = new HashMap<>();
         String n = "graph-" + ConnectUtil.launch_pkg + ".json";
         File graph = new File(n);
         if (graph.exists()) load(argv);
@@ -265,6 +270,8 @@ public class GraphAdjustor extends UiTransition{
                 REPLAY_MODE = true;
                 reGraph = new AppGraph();
                 reGraph.setPackage_name(ConnectUtil.launch_pkg);
+            } else if (argv.contains("-n")) {
+                SPIDER_MODE = true;
             }
             String n = "graph-" + ConnectUtil.launch_pkg + ".json";
             String graphStr = CommonUtil.readFromFile(n);
@@ -299,10 +306,12 @@ public class GraphAdjustor extends UiTransition{
         if (!REPLAY_MODE) graph = appGraph;
         else graph = reGraph;
 
+        if(tree == null)
+            return null;
         ActivityNode activityNode = graph.getAct(tree.getActivityName());
         FragmentNode fragmentNode = null;
         if (activityNode == null){
-            log("fail to find " + tree.getActivityName() + "_" + tree.getTreeStructureHash());
+            log("1 fail to find " + tree.getActivityName() + "_" + tree.getTreeStructureHash());
             activityNode = new ActivityNode(tree.getActivityName());
             graph.appendActivity(activityNode);
             fragmentNode = new FragmentNode(tree);
@@ -314,7 +323,7 @@ public class GraphAdjustor extends UiTransition{
         fragmentNode = activityNode.find_Fragment(tree, REPLAY_MODE);
 
         if (fragmentNode == null){
-            log("fail to locate " + tree.getActivityName() + "_" + tree.getTreeStructureHash());
+            log("2 fail to locate " + tree.getActivityName() + "_" + tree.getTreeStructureHash());
             fragmentNode = new FragmentNode(tree);
             activityNode.appendFragment(fragmentNode);
             if (REPLAY_MODE) appGraph.transfer_actions(fragmentNode);
@@ -322,6 +331,45 @@ public class GraphAdjustor extends UiTransition{
 
         if (activityNode.getFragment(tree.getTreeStructureHash()) == null){
             if (REPLAY_MODE) appGraph.transfer_actions(fragmentNode);
+            activityNode.appendFragment(fragmentNode);
+        }
+
+        return fragmentNode;
+    }
+
+    public FragmentNode locateForSpider(ViewTree tree){
+        AppGraph graph;
+        if (!REPLAY_MODE) graph = appGraph;
+        else graph = reGraph;
+
+        if(tree == null)
+            return null;
+        ActivityNode activityNode = graph.getAct(tree.getActivityName());
+        FragmentNode fragmentNode = null;
+        if (activityNode == null){
+            log("3 fail to find " + tree.getActivityName() + "_" + tree.getTreeStructureHash());
+            activityNode = new ActivityNode(tree.getActivityName());
+            graph.appendActivity(activityNode);
+            fragmentNode = new FragmentNode(tree);
+            activityNode.appendFragment(fragmentNode);
+            if (REPLAY_MODE) appGraph.transfer_actions(fragmentNode);
+            if(SPIDER_MODE) return null;
+            return fragmentNode;
+        }
+
+        fragmentNode = activityNode.find_Fragment(tree, REPLAY_MODE);
+
+        if (fragmentNode == null){
+            log("4 fail to locate " + tree.getActivityName() + "_" + tree.getTreeStructureHash());
+            fragmentNode = new FragmentNode(tree);
+            activityNode.appendFragment(fragmentNode);
+            if(SPIDER_MODE) return null;
+            if (REPLAY_MODE) appGraph.transfer_actions(fragmentNode);
+        }
+
+        if (activityNode.getFragment(tree.getTreeStructureHash()) == null){
+            if (REPLAY_MODE) appGraph.transfer_actions(fragmentNode);
+            if(SPIDER_MODE) return null;
             activityNode.appendFragment(fragmentNode);
         }
 
@@ -350,6 +398,32 @@ public class GraphAdjustor extends UiTransition{
             currentNode.setTraverse_over(true);
         return action;
     }
+
+    public Action getTextAction(ViewTree currentTree){
+        FragmentNode currentNode = locate(currentTree);
+        //log("current node: " + currentNode.getSignature());
+        Action action = null;
+        if(currentNode == null) return null;
+        if (currentNode.text_path_index.size() < 30 && currentNode.text_path_index.size() < currentNode.text_path_list.size()) {
+            //CommonUtil.log("text path list size:"+currentNode.text_path_list.size());
+            int ser = CommonUtil.shuffle(currentNode.text_path_index, currentNode.text_path_list.size());
+
+            currentNode.text_path_index.add(ser);
+            log(currentNode.getSignature() +  "text path: " + currentNode.text_path_index.size() + "/" + currentNode.text_path_list.size());
+
+            String path = currentNode.text_path_list.get(ser);
+            //log("next path to act:" + path);
+            if (currentNode.edit_fields.contains(path)) {
+                action = new Action(path, Action.action_list.ENTERTEXT);
+            }else if (path.equals("menu")){
+                action = new Action(path, Action.action_list.MENU);
+            }else
+                action = new Action(path, Action.action_list.CLICK);
+        }else
+            currentNode.setTraverse_over(true);
+        return action;
+    }
+
 
     public Action getEdgetActionInOrder(Device d, ViewTree currentTree){
         FragmentNode currentNode = locate(currentTree);
@@ -563,8 +637,8 @@ public class GraphAdjustor extends UiTransition{
         return actNode.find_Fragment_in_graph(tree);
     }
 
-    public List<FragmentNode> getPreviousNodes(FragmentNode start, String activityName){
-        List<FragmentNode> previousNodes = new ArrayList<>();
+    public List<Tuple2<FragmentNode, Action>> getPreviousNodes(FragmentNode start, String activityName){
+        List<Tuple2<FragmentNode, Action>> previousNodes = new ArrayList<>();
         ActivityNode targetActivityNode = appGraph.find_Activity(activityName);
         if(targetActivityNode == null) {
             log("can't find activity node:" + activityName);
@@ -599,12 +673,91 @@ public class GraphAdjustor extends UiTransition{
                     //CommonUtil.log("activity:" + n.activity);
                     if (n.getActivity().equals(activityName)){
                         //log("find one:"  + processing.getSignature());
-                        previousNodes.add(processing);
+                        Tuple2<FragmentNode, Action> tmp = new Tuple2<FragmentNode, Action>(processing, action);
+                        previousNodes.add(tmp);
                     }
                     queue.add(n);
                 }
             }
         }
         return previousNodes;
+    }
+
+    public void clearPathIndex() {
+        for(ActivityNode an : appGraph.activities){
+            for(FragmentNode fn : an.fragments){
+                fn.path_index.clear();
+                fn.text_path_index.clear();
+            }
+        }
+    }
+
+
+    //选择5个与string最相近的path，构造action返回。
+    public Action getSimilarTextAction(ViewTree currentTree, String string) {
+        FragmentNode currentNode = locate(currentTree);
+        //log("current node: " + currentNode.getSignature());
+        Action action = null;
+        if(currentNode == null) return null;
+
+        if(!similarPathIndex.containsKey(currentNode.getSignature() + string)) {
+            List<Integer> indexList = new ArrayList<>();
+            List<Tuple2<Integer,Integer>> index2similarity = new ArrayList<Tuple2<Integer,Integer>>();
+            for(int index = 0; index < currentNode.text_path_list.size(); index++) {
+                String path = currentNode.text_path_list.get(index);
+                Tuple2<Integer, Integer> tuple = new Tuple2<Integer, Integer> (index, cal_similarity(path, string));
+                index2similarity.add(tuple);
+            }
+            Collections.sort(index2similarity, new Comparator(){
+                @Override
+                public int compare(Object o1, Object o2) {
+                    Tuple2<Integer, Integer> t1 = (Tuple2<Integer, Integer>) o1;
+                    Tuple2<Integer, Integer> t2 = (Tuple2<Integer, Integer>) o2;
+                    int i = t2.getSecond().compareTo(t1.getSecond());
+                    if(i == 0)
+                        return t2.getFirst().compareTo(t1.getFirst());
+                    return i;
+                }
+            });
+            //CommonUtil.log("string:" + string);
+            //CommonUtil.log("current node:" + currentNode.getSignature());
+            for(Tuple2<Integer,Integer> t : index2similarity) {
+                //CommonUtil.log("index:" + t.getFirst());
+                //CommonUtil.log("similarity:" + t.getSecond());
+                //CommonUtil.log("path:" + currentNode.text_path_list.get(t.getFirst()));
+                indexList.add(t.getFirst());
+            }
+            similarPathIndex.put(currentNode.getSignature() + string, indexList);
+        }
+        List<Integer> indexList = similarPathIndex.get(currentNode.getSignature() + string);
+        //选择8个最接近的。
+        if (currentNode.text_path_index.size() < 8 && currentNode.text_path_index.size() < indexList.size()) {
+            int ser = indexList.get(currentNode.text_path_index.size());
+            while (ser >= currentNode.text_path_list.size()){
+                CommonUtil.log("xxx");
+                currentNode.text_path_index.add(ser);
+                ser = indexList.get(currentNode.text_path_index.size());
+            }
+            currentNode.text_path_index.add(ser);
+
+            log(currentNode.getSignature() +  "text path: " + currentNode.text_path_index.size() + "/" + currentNode.text_path_list.size());
+
+            String path = currentNode.text_path_list.get(ser);
+            //log("next path to act:" + path);
+            if (currentNode.edit_fields.contains(path)) {
+                action = new Action(path, Action.action_list.ENTERTEXT);
+            }else if (path.equals("menu")){
+                action = new Action(path, Action.action_list.MENU);
+            }else
+                action = new Action(path, Action.action_list.CLICK);
+        }else
+            currentNode.setTraverse_over(true);
+        return action;
+    }
+
+    public int cal_similarity(String s1, String s2) {
+        int i = 0;
+        while(i < s1.length() && i < s2.length() && s1.charAt(i) == s2.charAt(i)) i++;
+        return i;
     }
 }

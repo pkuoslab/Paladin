@@ -13,6 +13,7 @@ public class Decision {
         int STOP = 2;
         int RESTART = 3;
         int DONOTHING = 4;
+        int RESTART_F = 5;
     }
     public int code;
     public Action action;
